@@ -101,6 +101,7 @@ data class DailyItem(
     val maxTemp: Int,
     val minTemp: Int,
     val precipProb: Int,
+    val precipSum: Double,
     val maxUv: Double,
     val emoji: String,
     val conditionDesc: String

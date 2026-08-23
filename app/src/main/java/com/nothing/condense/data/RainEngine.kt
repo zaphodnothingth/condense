@@ -211,11 +211,12 @@ object RainEngine {
             val maxTemp = daily.maxTemperatures.getOrNull(i)?.roundToInt() ?: 0
             val minTemp = daily.minTemperatures.getOrNull(i)?.roundToInt() ?: 0
             val prob = daily.maxPrecipitationProbabilities.getOrNull(i) ?: 0
+            val precipSum = daily.precipitationSums.getOrNull(i) ?: 0.0
             val uv = daily.maxUvIndices.getOrNull(i) ?: 0.0
             val code = daily.weatherCodes.getOrNull(i) ?: 0
             val (emoji, desc) = getWeatherCodeDetails(code)
 
-            items.add(DailyItem(dayLabel, dateLabel, maxTemp, minTemp, prob, uv, emoji, desc))
+            items.add(DailyItem(dayLabel, dateLabel, maxTemp, minTemp, prob, precipSum, uv, emoji, desc))
         }
         return items
     }

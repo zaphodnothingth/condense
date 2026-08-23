@@ -7,6 +7,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +28,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Refresh
@@ -371,6 +378,158 @@ fun RainCountdownCard(data: WeatherSummary) {
                 color = Color(0xFFA1A1A6),
                 fontSize = 14.sp
             )
+
+            // 7-Day Rainfall Trend Line Chart
+            if (data.dailyForecast.isNotEmpty()) {
+                SevenDayRainTrendChart(data.dailyForecast)
+            }
+        }
+    }
+}
+
+@Composable
+fun SevenDayRainTrendChart(dailyList: List<DailyItem>) {
+    val days = remember(dailyList) { dailyList.take(7) }
+    if (days.isEmpty()) return
+
+    val maxRain = remember(days) { (days.maxOfOrNull { it.precipSum } ?: 0.5).coerceAtLeast(0.25) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp)
+            .background(Color(0xFF1C1C1E), RoundedCornerShape(16.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "7-DAY RAINFALL (INCHES)",
+                color = Color(0xFF8E8E93),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                letterSpacing = 1.sp
+            )
+            val totalRain = remember(days) { String.format(java.util.Locale.US, "%.2f\"", days.sumOf { it.precipSum }) }
+            Text(
+                text = "Total: $totalRain",
+                color = Color(0xFF0A84FF),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Data points value row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            days.forEach { item ->
+                Text(
+                    text = if (item.precipSum > 0.0) String.format(java.util.Locale.US, "%.1f\"", item.precipSum) else "0\"",
+                    color = if (item.precipSum > 0.0) Color(0xFF0A84FF) else Color(0xFF636366),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.width(36.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Canvas Line Chart
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+        ) {
+            val width = size.width
+            val height = size.height
+            val stepX = width / (days.size - 1).coerceAtLeast(1)
+
+            val points = days.mapIndexed { index, item ->
+                val x = index * stepX
+                val normalizedY = (item.precipSum / maxRain).coerceIn(0.0, 1.0)
+                val y = height - (normalizedY * (height - 12f) + 6f).toFloat()
+                Offset(x, y)
+            }
+
+            // Fill gradient area
+            val fillPath = Path().apply {
+                moveTo(points.first().x, height)
+                points.forEach { lineTo(it.x, it.y) }
+                lineTo(points.last().x, height)
+                close()
+            }
+            drawPath(
+                path = fillPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color(0x400A84FF), Color.Transparent),
+                    startY = 0f,
+                    endY = height
+                )
+            )
+
+            // Draw line
+            val strokePath = Path().apply {
+                moveTo(points.first().x, points.first().y)
+                for (i in 1 until points.size) {
+                    val p0 = points[i - 1]
+                    val p1 = points[i]
+                    val cx = (p0.x + p1.x) / 2
+                    cubicTo(cx, p0.y, cx, p1.y, p1.x, p1.y)
+                }
+            }
+            drawPath(
+                path = strokePath,
+                color = Color(0xFF0A84FF),
+                style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
+            )
+
+            // Draw data dots
+            points.forEachIndexed { i, pt ->
+                val isRain = days[i].precipSum > 0.0
+                drawCircle(
+                    color = if (isRain) Color(0xFF0A84FF) else Color(0xFF3A3A3C),
+                    radius = if (isRain) 4.dp.toPx() else 2.5.dp.toPx(),
+                    center = pt
+                )
+                if (isRain) {
+                    drawCircle(
+                        color = Color.White,
+                        radius = 2.dp.toPx(),
+                        center = pt
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Day labels row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            days.forEach { item ->
+                Text(
+                    text = item.dayLabel.take(3),
+                    color = Color(0xFF8E8E93),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.width(36.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }
@@ -439,6 +598,156 @@ fun UvIndexCard(data: WeatherSummary) {
                 color = getUvColor(data.currentUv),
                 trackColor = Color(0xFF2C2C2E),
             )
+
+            // 7-Day UV Trend Line Chart
+            if (data.dailyForecast.isNotEmpty()) {
+                SevenDayUvTrendChart(data.dailyForecast)
+            }
+        }
+    }
+}
+
+@Composable
+fun SevenDayUvTrendChart(dailyList: List<DailyItem>) {
+    val days = remember(dailyList) { dailyList.take(7) }
+    if (days.isEmpty()) return
+
+    val maxUv = remember(days) { (days.maxOfOrNull { it.maxUv } ?: 10.0).coerceAtLeast(8.0) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp)
+            .background(Color(0xFF1C1C1E), RoundedCornerShape(16.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "7-DAY UV INDEX TREND",
+                color = Color(0xFF8E8E93),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                letterSpacing = 1.sp
+            )
+            val peakUv = remember(days) { days.maxOfOrNull { it.maxUv }?.toInt() ?: 0 }
+            Text(
+                text = "Peak: $peakUv (${RainEngine.getUvCategory(peakUv.toDouble())})",
+                color = Color(0xFFFF9F0A),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Data points value row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            days.forEach { item ->
+                Text(
+                    text = "${item.maxUv.toInt()}",
+                    color = getUvColor(item.maxUv),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.width(36.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Canvas Line Chart
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+        ) {
+            val width = size.width
+            val height = size.height
+            val stepX = width / (days.size - 1).coerceAtLeast(1)
+
+            val points = days.mapIndexed { index, item ->
+                val x = index * stepX
+                val normalizedY = (item.maxUv / maxUv).coerceIn(0.0, 1.0)
+                val y = height - (normalizedY * (height - 12f) + 6f).toFloat()
+                Offset(x, y)
+            }
+
+            // Fill gradient area
+            val fillPath = Path().apply {
+                moveTo(points.first().x, height)
+                points.forEach { lineTo(it.x, it.y) }
+                lineTo(points.last().x, height)
+                close()
+            }
+            drawPath(
+                path = fillPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color(0x40FF9F0A), Color.Transparent),
+                    startY = 0f,
+                    endY = height
+                )
+            )
+
+            // Draw line
+            val strokePath = Path().apply {
+                moveTo(points.first().x, points.first().y)
+                for (i in 1 until points.size) {
+                    val p0 = points[i - 1]
+                    val p1 = points[i]
+                    val cx = (p0.x + p1.x) / 2
+                    cubicTo(cx, p0.y, cx, p1.y, p1.x, p1.y)
+                }
+            }
+            drawPath(
+                path = strokePath,
+                color = Color(0xFFFF9F0A),
+                style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
+            )
+
+            // Draw data dots
+            points.forEachIndexed { i, pt ->
+                val uvVal = days[i].maxUv
+                drawCircle(
+                    color = getUvColor(uvVal),
+                    radius = 4.dp.toPx(),
+                    center = pt
+                )
+                drawCircle(
+                    color = Color.White,
+                    radius = 2.dp.toPx(),
+                    center = pt
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Day labels row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            days.forEach { item ->
+                Text(
+                    text = item.dayLabel.take(3),
+                    color = Color(0xFF8E8E93),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.width(36.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }
