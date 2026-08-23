@@ -67,8 +67,9 @@ class WeatherRepository private constructor(private val context: Context) {
 
             _currentSummary.value = summary
 
-            // Update lock screen notification
+            // Update lock screen notification & Quick Settings Tile
             LockScreenNotificationManager.updateNotification(context, summary)
+            com.nothing.condense.service.CondenseTileService.requestTileUpdate(context)
 
             // Also fetch radar frames
             try {

@@ -1,5 +1,7 @@
 package com.nothing.condense.service
 
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Icon
 import android.os.Build
@@ -15,6 +17,11 @@ import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.N)
 class CondenseTileService : TileService() {
+
+    override fun onTileAdded() {
+        super.onTileAdded()
+        updateTile()
+    }
 
     override fun onStartListening() {
         super.onStartListening()
@@ -52,21 +59,48 @@ class CondenseTileService : TileService() {
         val summary = WeatherRepository.getInstance(this).currentSummary.value
 
         tile.state = Tile.STATE_ACTIVE
-        tile.icon = Icon.createWithResource(this, R.drawable.ic_launcher_foreground)
+        tile.icon = Icon.createWithResource(this, R.drawable.ic_qs_weather)
 
         if (summary != null) {
             tile.label = "${summary.currentTemp}° ${summary.conditionEmoji}"
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val rainSub = if (summary.isRainingNow) "Raining now" else summary.nextRainHeadline
                 tile.subtitle = "${summary.todayHigh}/${summary.todayLow} · UV ${summary.currentUv.toInt()} · $rainSub"
+                tile.contentDescription = "${summary.locationName}: ${summary.currentTemp} degrees, ${summary.conditionDescription}"
             }
+            tile.updateTile()
         } else {
             tile.label = "Condense"
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                tile.subtitle = "Tap to open"
+                tile.subtitle = "Updating weather..."
+            }
+            tile.updateTile()
+
+            CoroutineScope(Dispatchers.IO).launch {
+                WeatherRepository.getInstance(applicationContext).refreshWeather()
+                val refreshed = WeatherRepository.getInstance(applicationContext).currentSummary.value
+                if (refreshed != null) {
+                    val freshTile = qsTile ?: return@launch
+                    freshTile.label = "${refreshed.currentTemp}° ${refreshed.conditionEmoji}"
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        val rainSub = if (refreshed.isRainingNow) "Raining now" else refreshed.nextRainHeadline
+                        freshTile.subtitle = "${refreshed.todayHigh}/${refreshed.todayLow} · UV ${refreshed.currentUv.toInt()} · $rainSub"
+                    }
+                    freshTile.updateTile()
+                }
             }
         }
+    }
 
-        tile.updateTile()
+    companion object {
+        fun requestTileUpdate(context: Context) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                try {
+                    requestListeningState(context, ComponentName(context, CondenseTileService::class.java))
+                } catch (e: Exception) {
+                    // Ignore on non-supported platforms
+                }
+            }
+        }
     }
 }
