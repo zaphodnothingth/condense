@@ -32,7 +32,8 @@ class WeatherApiService(
                 "latitude=$latitude&longitude=$longitude" +
                 "&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,uv_index" +
                 "&hourly=temperature_2m,precipitation_probability,precipitation,uv_index,weather_code" +
-                "&daily=temperature_2m_max,temperature_2m_min,uv_index_max,precipitation_probability_max,precipitation_sum" +
+                "&daily=temperature_2m_max,temperature_2m_min,uv_index_max,precipitation_probability_max,precipitation_sum,weather_code" +
+                "&forecast_days=16" +
                 "&temperature_unit=$tempUnit&precipitation_unit=$precipUnit&timezone=auto"
 
         return client.get(url).body()

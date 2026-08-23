@@ -88,7 +88,7 @@ fun RadarMapView(
 
                 val tileSource = object : OnlineTileSourceBase(
                     "RainViewer-${frame.time}",
-                    1, 19, 256, ".png",
+                    0, 12, 256, ".png",
                     arrayOf(radarHost)
                 ) {
                     override fun getTileURLString(pMapTileIndex: Long): String {
@@ -110,14 +110,25 @@ fun RadarMapView(
         }
     }
 
-    Box(modifier = modifier) {
+    Box(
+        modifier = modifier
+            .background(Color(0xFF141416), RoundedCornerShape(24.dp))
+    ) {
         AndroidView(
             factory = { ctx ->
                 MapView(ctx).apply {
                     setTileSource(TileSourceFactory.MAPNIK)
                     setMultiTouchControls(true)
-                    controller.setZoom(10.0)
+                    minZoomLevel = 3.0
+                    maxZoomLevel = 12.0
+                    controller.setZoom(8.0)
                     controller.setCenter(GeoPoint(latitude, longitude))
+
+                    // Allow panning without triggering parent vertical scroll
+                    setOnTouchListener { v, event ->
+                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                        false
+                    }
 
                     // Location overlay
                     val locationOverlay = MyLocationNewOverlay(this)
@@ -197,7 +208,7 @@ fun RadarMapView(
                     IconButton(
                         onClick = {
                             mapViewInstance?.controller?.animateTo(GeoPoint(latitude, longitude))
-                            mapViewInstance?.controller?.setZoom(10.5)
+                            mapViewInstance?.controller?.setZoom(8.5)
                         }
                     ) {
                         Icon(

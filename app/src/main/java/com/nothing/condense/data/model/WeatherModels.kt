@@ -41,7 +41,8 @@ data class DailyWeather(
     @SerialName("temperature_2m_min") val minTemperatures: List<Double> = emptyList(),
     @SerialName("uv_index_max") val maxUvIndices: List<Double> = emptyList(),
     @SerialName("precipitation_probability_max") val maxPrecipitationProbabilities: List<Int> = emptyList(),
-    @SerialName("precipitation_sum") val precipitationSums: List<Double> = emptyList()
+    @SerialName("precipitation_sum") val precipitationSums: List<Double> = emptyList(),
+    @SerialName("weather_code") val weatherCodes: List<Int> = emptyList()
 )
 
 @Serializable
@@ -82,6 +83,7 @@ data class WeatherSummary(
     val conditionDescription: String,
     val conditionEmoji: String,
     val hourlyForecast: List<HourlyItem>,
+    val dailyForecast: List<DailyItem> = emptyList(),
     val lastUpdated: Long = System.currentTimeMillis()
 )
 
@@ -92,3 +94,15 @@ data class HourlyItem(
     val uvIndex: Double,
     val emoji: String
 )
+
+data class DailyItem(
+    val dayLabel: String,
+    val dateLabel: String,
+    val maxTemp: Int,
+    val minTemp: Int,
+    val precipProb: Int,
+    val maxUv: Double,
+    val emoji: String,
+    val conditionDesc: String
+)
+

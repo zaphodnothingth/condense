@@ -47,6 +47,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -55,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.nothing.condense.data.RainEngine
 import com.nothing.condense.data.WeatherRepository
+import com.nothing.condense.data.model.DailyItem
 import com.nothing.condense.data.model.HourlyItem
 import com.nothing.condense.data.model.WeatherSummary
 import com.nothing.condense.ui.radar.RadarMapView
@@ -256,6 +258,28 @@ fun WeatherDashboardScreen(repository: WeatherRepository) {
                     }
                 }
 
+                // 14-Day Daily Forecast Row
+                if (data.dailyForecast.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        text = "14-DAY DAILY FORECAST",
+                        color = Color(0xFF8E8E93),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        letterSpacing = 1.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(data.dailyForecast) { item ->
+                            DailyForecastItemView(item)
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(28.dp))
 
                 // Live Interactive Radar Map Section
@@ -277,6 +301,7 @@ fun WeatherDashboardScreen(repository: WeatherRepository) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(340.dp)
+                        .clip(RoundedCornerShape(24.dp))
                         .border(1.dp, Color(0xFF2C2C2E), RoundedCornerShape(24.dp))
                 )
 
@@ -444,6 +469,57 @@ fun HourlyForecastItemView(item: HourlyItem) {
             color = Color.White,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold
+        )
+        if (item.precipProb > 0) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "${item.precipProb}%",
+                color = Color(0xFF0A84FF),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+fun DailyForecastItemView(item: DailyItem) {
+    Column(
+        modifier = Modifier
+            .background(Color(0xFF141416), RoundedCornerShape(18.dp))
+            .border(1.dp, Color(0xFF2C2C2E), RoundedCornerShape(18.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = item.dayLabel.uppercase(),
+            color = Color.White,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace
+        )
+        Text(
+            text = item.dateLabel,
+            color = Color(0xFF8E8E93),
+            fontSize = 10.sp,
+            fontFamily = FontFamily.Monospace
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = item.emoji,
+            fontSize = 20.sp
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = "${item.maxTemp}°",
+            color = Color.White,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "${item.minTemp}°",
+            color = Color(0xFF8E8E93),
+            fontSize = 12.sp
         )
         if (item.precipProb > 0) {
             Spacer(modifier = Modifier.height(4.dp))

@@ -1,8 +1,10 @@
 package com.nothing.condense.data
 
+import com.nothing.condense.data.model.DailyItem
 import com.nothing.condense.data.model.HourlyItem
 import com.nothing.condense.data.model.OpenMeteoResponse
 import com.nothing.condense.data.model.WeatherSummary
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -29,6 +31,7 @@ object RainEngine {
         val (emoji, desc) = getWeatherCodeDetails(current?.weatherCode ?: 0)
 
         val hourlyItems = buildHourlyList(hourly)
+        val dailyItems = buildDailyList(daily)
 
         return WeatherSummary(
             locationName = locationName,
@@ -44,7 +47,8 @@ object RainEngine {
             isRainingNow = isRaining,
             conditionDescription = desc,
             conditionEmoji = emoji,
-            hourlyForecast = hourlyItems
+            hourlyForecast = hourlyItems,
+            dailyForecast = dailyItems
         )
     }
 
@@ -170,6 +174,38 @@ object RainEngine {
 
             items.add(HourlyItem(hourLabel, temp, prob, uv, emoji))
             if (items.size >= 24) break
+        }
+        return items
+    }
+
+    private fun buildDailyList(daily: com.nothing.condense.data.model.DailyWeather?): List<DailyItem> {
+        if (daily == null || daily.time.isEmpty()) return emptyList()
+        val now = LocalDate.now()
+        val formatter = DateTimeFormatter.ISO_LOCAL_DATE
+        val items = mutableListOf<DailyItem>()
+
+        for (i in daily.time.indices) {
+            val dateStr = daily.time[i]
+            val date = try {
+                LocalDate.parse(dateStr, formatter)
+            } catch (e: Exception) {
+                continue
+            }
+
+            val dayLabel = when {
+                date == now -> "Today"
+                date == now.plusDays(1) -> "Tomorrow"
+                else -> date.format(DateTimeFormatter.ofPattern("EEE"))
+            }
+            val dateLabel = date.format(DateTimeFormatter.ofPattern("MMM d"))
+            val maxTemp = daily.maxTemperatures.getOrNull(i)?.roundToInt() ?: 0
+            val minTemp = daily.minTemperatures.getOrNull(i)?.roundToInt() ?: 0
+            val prob = daily.maxPrecipitationProbabilities.getOrNull(i) ?: 0
+            val uv = daily.maxUvIndices.getOrNull(i) ?: 0.0
+            val code = daily.weatherCodes.getOrNull(i) ?: 0
+            val (emoji, desc) = getWeatherCodeDetails(code)
+
+            items.add(DailyItem(dayLabel, dateLabel, maxTemp, minTemp, prob, uv, emoji, desc))
         }
         return items
     }
