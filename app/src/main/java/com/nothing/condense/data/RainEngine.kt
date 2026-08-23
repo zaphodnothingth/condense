@@ -1,8 +1,8 @@
-package com.nothing.rainglance.data
+package com.nothing.condense.data
 
-import com.nothing.rainglance.data.model.HourlyItem
-import com.nothing.rainglance.data.model.OpenMeteoResponse
-import com.nothing.rainglance.data.model.WeatherSummary
+import com.nothing.condense.data.model.HourlyItem
+import com.nothing.condense.data.model.OpenMeteoResponse
+import com.nothing.condense.data.model.WeatherSummary
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -50,7 +50,7 @@ object RainEngine {
 
     fun calculateNextRain(
         currentPrecipitation: Double?,
-        hourly: com.nothing.rainglance.data.model.HourlyWeather?,
+        hourly: com.nothing.condense.data.model.HourlyWeather?,
         currentTime: LocalDateTime = LocalDateTime.now()
     ): Triple<Boolean, String, String> {
         val isRainingNow = (currentPrecipitation ?: 0.0) > 0.02
@@ -145,7 +145,7 @@ object RainEngine {
         }
     }
 
-    private fun buildHourlyList(hourly: com.nothing.rainglance.data.model.HourlyWeather?): List<HourlyItem> {
+    private fun buildHourlyList(hourly: com.nothing.condense.data.model.HourlyWeather?): List<HourlyItem> {
         if (hourly == null) return emptyList()
         val now = LocalDateTime.now()
         val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME

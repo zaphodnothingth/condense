@@ -1,4 +1,4 @@
-package com.nothing.rainglance.data.model
+package com.nothing.condense.data.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

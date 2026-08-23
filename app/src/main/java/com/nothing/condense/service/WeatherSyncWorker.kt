@@ -1,12 +1,12 @@
-package com.nothing.rainglance.service
+package com.nothing.condense.service
 
 import android.content.Context
 import androidx.glance.appwidget.updateAll
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.nothing.rainglance.data.WeatherRepository
-import com.nothing.rainglance.widget.NothingRainWidget1x1
-import com.nothing.rainglance.widget.NothingRainWidget2x1
+import com.nothing.condense.data.WeatherRepository
+import com.nothing.condense.widget.NothingRainWidget1x1
+import com.nothing.condense.widget.NothingRainWidget2x1
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

@@ -1,7 +1,7 @@
-package com.nothing.rainglance
+package com.nothing.condense
 
-import com.nothing.rainglance.data.RainEngine
-import com.nothing.rainglance.data.model.HourlyWeather
+import com.nothing.condense.data.RainEngine
+import com.nothing.condense.data.model.HourlyWeather
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

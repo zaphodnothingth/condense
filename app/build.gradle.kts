@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.nothing.rainglance"
+    namespace = "com.nothing.condense"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.nothing.rainglance"
+        applicationId = "com.nothing.condense"
         minSdk = 28
         targetSdk = 35
         versionCode = 1

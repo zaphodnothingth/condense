@@ -1,4 +1,4 @@
-package com.nothing.rainglance.ui.radar
+package com.nothing.condense.ui.radar
 
 import android.content.Context
 import androidx.compose.foundation.background
@@ -41,7 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.nothing.rainglance.data.model.RadarFrame
+import com.nothing.condense.data.model.RadarFrame
 import kotlinx.coroutines.delay
 import org.osmdroid.tileprovider.MapTileProviderBasic
 import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase

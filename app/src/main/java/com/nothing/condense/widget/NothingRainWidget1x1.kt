@@ -1,4 +1,4 @@
-package com.nothing.rainglance.widget
+package com.nothing.condense.widget
 
 import android.content.Context
 import androidx.compose.ui.graphics.Color
@@ -27,8 +27,8 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import com.nothing.rainglance.data.WeatherRepository
-import com.nothing.rainglance.ui.MainActivity
+import com.nothing.condense.data.WeatherRepository
+import com.nothing.condense.ui.MainActivity
 
 class NothingRainWidget1x1 : GlanceAppWidget() {
 

@@ -1,4 +1,4 @@
-package com.nothing.rainglance
+package com.nothing.condense
 
 import android.app.Application
 import android.app.NotificationChannel
@@ -10,11 +10,11 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.nothing.rainglance.service.WeatherSyncWorker
+import com.nothing.condense.service.WeatherSyncWorker
 import org.osmdroid.config.Configuration
 import java.util.concurrent.TimeUnit
 
-class RainGlanceApp : Application() {
+class CondenseApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
@@ -59,7 +59,7 @@ class RainGlanceApp : Application() {
     }
 
     companion object {
-        const val CHANNEL_ID = "rain_glance_channel"
+        const val CHANNEL_ID = "condense_channel"
         const val NOTIFICATION_ID = 1001
     }
 }

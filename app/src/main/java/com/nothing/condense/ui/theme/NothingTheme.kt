@@ -1,4 +1,4 @@
-package com.nothing.rainglance.ui.theme
+package com.nothing.condense.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme

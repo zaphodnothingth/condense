@@ -1,4 +1,4 @@
-package com.nothing.rainglance.data
+package com.nothing.condense.data
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -6,10 +6,10 @@ import android.location.Geocoder
 import android.location.Location
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.tasks.Task
-import com.nothing.rainglance.data.api.WeatherApiService
-import com.nothing.rainglance.data.model.RadarFrame
-import com.nothing.rainglance.data.model.WeatherSummary
-import com.nothing.rainglance.service.LockScreenNotificationManager
+import com.nothing.condense.data.api.WeatherApiService
+import com.nothing.condense.data.model.RadarFrame
+import com.nothing.condense.data.model.WeatherSummary
+import com.nothing.condense.service.LockScreenNotificationManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

@@ -1,4 +1,4 @@
-package com.nothing.rainglance.ui
+package com.nothing.condense.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -53,12 +53,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import com.nothing.rainglance.data.RainEngine
-import com.nothing.rainglance.data.WeatherRepository
-import com.nothing.rainglance.data.model.HourlyItem
-import com.nothing.rainglance.data.model.WeatherSummary
-import com.nothing.rainglance.ui.radar.RadarMapView
-import com.nothing.rainglance.ui.theme.NothingRainTheme
+import com.nothing.condense.data.RainEngine
+import com.nothing.condense.data.WeatherRepository
+import com.nothing.condense.data.model.HourlyItem
+import com.nothing.condense.data.model.WeatherSummary
+import com.nothing.condense.ui.radar.RadarMapView
+import com.nothing.condense.ui.theme.NothingRainTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {

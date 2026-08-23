@@ -41,10 +41,10 @@ Built to replicate and surpass the beloved **Apple Watch "Time to Next Rain" com
 ## 🛠️ Project Structure
 
 ```
-nothing-rain-glance/
+condense/
 ├── app/
 │   ├── src/main/java/com/nothing/rainglance/
-│   │   ├── RainGlanceApp.kt                 # App init, WorkManager & Notification channels
+│   │   ├── CondenseApp.kt                 # App init, WorkManager & Notification channels
 │   │   ├── data/
 │   │   │   ├── RainEngine.kt                # Pure algorithmic next-rain & UV calculation
 │   │   │   ├── WeatherRepository.kt         # GPS location, API caller & cache
@@ -71,11 +71,11 @@ nothing-rain-glance/
 
 ### In Android Studio:
 1. Open Android Studio.
-2. Select **Open** and choose `C:\Users\steve\gits\nothing-rain-glance`.
+2. Select **Open** and choose `C:\Users\steve\gits\condense`.
 3. Connect your **Nothing Phone 3** via USB (or wireless debugging) with **Developer Options > USB Debugging** enabled.
 4. Click **Run 'app'** (`Shift + F10`).
 
 ### On your Nothing Phone 3:
 1. Long-press an empty space on your **Home Screen** → tap **Widgets**.
-2. Scroll to **RainGlance** → drag the **Nothing Weather Pill (2x1)** or **Nothing Weather (1x1)** widget onto your screen.
-3. For the **Lock Screen**: Go to **Settings > Display > Lock Screen > Lock Screen Widgets** and add the RainGlance widget.
+2. Scroll to **Condense** → drag the **Nothing Weather Pill (2x1)** or **Nothing Weather (1x1)** widget onto your screen.
+3. For the **Lock Screen**: Go to **Settings > Display > Lock Screen > Lock Screen Widgets** and add the Condense widget.

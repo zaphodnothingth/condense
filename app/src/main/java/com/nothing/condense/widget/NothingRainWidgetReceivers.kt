@@ -1,4 +1,4 @@
-package com.nothing.rainglance.widget
+package com.nothing.condense.widget
 
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver

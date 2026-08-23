@@ -1,4 +1,4 @@
-package com.nothing.rainglance.service
+package com.nothing.condense.service
 
 import android.app.Notification
 import android.app.PendingIntent
@@ -6,10 +6,10 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.nothing.rainglance.R
-import com.nothing.rainglance.RainGlanceApp
-import com.nothing.rainglance.data.model.WeatherSummary
-import com.nothing.rainglance.ui.MainActivity
+import com.nothing.condense.R
+import com.nothing.condense.CondenseApp
+import com.nothing.condense.data.model.WeatherSummary
+import com.nothing.condense.ui.MainActivity
 
 object LockScreenNotificationManager {
 
@@ -34,7 +34,7 @@ object LockScreenNotificationManager {
             "☔ Next Rain: ${summary.nextRainHeadline} (${summary.nextRainSubtext})"
         }
 
-        val notification = NotificationCompat.Builder(context, RainGlanceApp.CHANNEL_ID)
+        val notification = NotificationCompat.Builder(context, CondenseApp.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(title)
             .setContentText(content)
@@ -47,7 +47,7 @@ object LockScreenNotificationManager {
             .build()
 
         try {
-            NotificationManagerCompat.from(context).notify(RainGlanceApp.NOTIFICATION_ID, notification)
+            NotificationManagerCompat.from(context).notify(CondenseApp.NOTIFICATION_ID, notification)
         } catch (e: SecurityException) {
             // Notification permission check fallback
         }
