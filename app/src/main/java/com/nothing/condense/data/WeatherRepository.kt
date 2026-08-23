@@ -41,19 +41,23 @@ class WeatherRepository private constructor(private val context: Context) {
     val radarHost: StateFlow<String> = _radarHost.asStateFlow()
 
     private val _currentLocation = MutableStateFlow<Pair<Double, Double>>(
-        Pair(
-            locationPrefs.getFloat("last_lat", 36.7682f).toDouble(),
-            locationPrefs.getFloat("last_lon", -76.2875f).toDouble()
-        )
+        if (locationPrefs.contains("last_lat")) {
+            Pair(
+                locationPrefs.getFloat("last_lat", 0f).toDouble(),
+                locationPrefs.getFloat("last_lon", 0f).toDouble()
+            )
+        } else {
+            Pair(0.0, 0.0)
+        }
     )
     val currentLocation: StateFlow<Pair<Double, Double>> = _currentLocation.asStateFlow()
 
     @SuppressLint("MissingPermission")
     suspend fun refreshWeather(): WeatherSummary? = withContext(Dispatchers.IO) {
         try {
-            var lat = locationPrefs.getFloat("last_lat", 36.7682f).toDouble()
-            var lon = locationPrefs.getFloat("last_lon", -76.2875f).toDouble()
-            var locationName = locationPrefs.getString("last_name", "Chesapeake") ?: "Chesapeake"
+            var lat = if (locationPrefs.contains("last_lat")) locationPrefs.getFloat("last_lat", 0f).toDouble() else null
+            var lon = if (locationPrefs.contains("last_lon")) locationPrefs.getFloat("last_lon", 0f).toDouble() else null
+            var locationName = locationPrefs.getString("last_name", null) ?: "Current Location"
 
             try {
                 // 1. Try active GPS fix with timeout
@@ -89,10 +93,17 @@ class WeatherRepository private constructor(private val context: Context) {
                 // Location permission or timeout fallback to saved location
             }
 
+            if (lat == null || lon == null) {
+                return@withContext null
+            }
+
+            val validLat = lat
+            val validLon = lon
+
             val (response, aqiResponse) = coroutineScope {
-                val weatherDef = async { apiService.fetchWeather(lat, lon, useFahrenheit = true) }
+                val weatherDef = async { apiService.fetchWeather(validLat, validLon, useFahrenheit = true) }
                 val aqiDef = async {
-                    try { apiService.fetchAirQuality(lat, lon) } catch (e: Exception) { null }
+                    try { apiService.fetchAirQuality(validLat, validLon) } catch (e: Exception) { null }
                 }
                 Pair(weatherDef.await(), aqiDef.await())
             }
