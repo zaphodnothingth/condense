@@ -1,7 +1,7 @@
 <resources>
-    <string name="app_name">RainGlance</string>
-    <string name="widget_2x1_name">Nothing Weather Pill (2x1)</string>
-    <string name="widget_1x1_name">Nothing Weather (1x1)</string>
-    <string name="notification_channel_name">Weather &amp; Rain Live Status</string>
+    <string name="app_name">Condense</string>
+    <string name="widget_2x1_name">Condense Weather Pill (2x1)</string>
+    <string name="widget_1x1_name">Condense (1x1)</string>
+    <string name="notification_channel_name">Condense Weather &amp; Rain</string>
     <string name="notification_channel_desc">Persistent lock screen and status bar weather snapshot</string>
 </resources>

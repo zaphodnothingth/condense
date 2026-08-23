@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "nothing-rain-glance"
+rootProject.name = "condense"
 include(":app")

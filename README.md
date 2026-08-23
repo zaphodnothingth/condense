@@ -1,4 +1,4 @@
-# RainGlance (Nothing Phone 3 Edition) 🌧️☀️
+# Condense (Nothing Edition) 🌧️☀️
 
 A bespoke Android weather app and ultra-compact widget suite engineered specifically for **Nothing Phone 3** and **Nothing OS 2.x / 3.x**.
 
