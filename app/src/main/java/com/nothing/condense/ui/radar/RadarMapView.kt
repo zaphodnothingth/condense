@@ -26,6 +26,8 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -190,18 +192,19 @@ fun RadarMapView(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Overlay Radar Playback Controls
-        Box(
+        // Overlay Radar Playback Controls & Time Bar
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(12.dp)
                 .background(
-                    color = Color(0xE6141416),
-                    shape = RoundedCornerShape(16.dp)
+                    color = Color(0xF2141416),
+                    shape = RoundedCornerShape(18.dp)
                 )
-                .padding(horizontal = 14.dp, vertical = 8.dp)
+                .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
+            // Top Row: Play/Pause, Title, Timestamp, Recenter Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -246,7 +249,7 @@ fun RadarMapView(
                         Text(
                             text = timeFormatted,
                             color = Color.White,
-                            fontSize = 13.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -254,7 +257,7 @@ fun RadarMapView(
 
                 IconButton(
                     onClick = {
-                        mapViewRef.value?.controller?.animateTo(GeoPoint(latitude, longitude), 8.5, 500L)
+                        mapViewRef.value?.controller?.animateTo(GeoPoint(latitude, longitude), 7.0, 500L)
                     },
                     modifier = Modifier
                         .size(34.dp)
@@ -265,6 +268,60 @@ fun RadarMapView(
                         contentDescription = "Recenter",
                         tint = Color.White,
                         modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            if (radarFrames.size > 1) {
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Interactive Time Bar Slider
+                Slider(
+                    value = currentFrameIndex.toFloat(),
+                    onValueChange = { value ->
+                        isPlaying = false
+                        currentFrameIndex = value.toInt().coerceIn(0, radarFrames.size - 1)
+                    },
+                    valueRange = 0f..(radarFrames.size - 1).toFloat(),
+                    steps = (radarFrames.size - 2).coerceAtLeast(0),
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(0xFFD71920),
+                        activeTrackColor = Color(0xFFD71920),
+                        inactiveTrackColor = Color(0xFF2C2C2E),
+                        activeTickColor = Color.Transparent,
+                        inactiveTickColor = Color.Transparent
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(24.dp)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    val firstFrame = radarFrames.firstOrNull()
+                    val startTimeStr = remember(firstFrame) {
+                        if (firstFrame != null) {
+                            val instant = Instant.ofEpochSecond(firstFrame.time)
+                            instant.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("h:mm a"))
+                        } else ""
+                    }
+
+                    Text(
+                        text = startTimeStr,
+                        color = Color(0xFF636366),
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Text(
+                        text = "NOW",
+                        color = Color(0xFF8E8E93),
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
