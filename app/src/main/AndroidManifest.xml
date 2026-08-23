@@ -29,7 +29,7 @@
             </intent-filter>
         </activity>
 
-        <!-- 2x1 Nothing Pill Widget Receiver -->
+        <!-- 2x1 Nothing Horizontal Pill Widget Receiver -->
         <receiver
             android:name=".widget.NothingRainWidget2x1Receiver"
             android:exported="true"
@@ -40,6 +40,19 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_2x1_info" />
+        </receiver>
+
+        <!-- 1x2 Nothing Vertical Pill Widget Receiver -->
+        <receiver
+            android:name=".widget.NothingRainWidget1x2Receiver"
+            android:exported="true"
+            android:label="@string/widget_1x2_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_1x2_info" />
         </receiver>
 
         <!-- 1x1 Nothing Minimal Widget Receiver -->

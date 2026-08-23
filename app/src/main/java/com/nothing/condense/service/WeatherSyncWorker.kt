@@ -6,6 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.nothing.condense.data.WeatherRepository
 import com.nothing.condense.widget.NothingRainWidget1x1
+import com.nothing.condense.widget.NothingRainWidget1x2
 import com.nothing.condense.widget.NothingRainWidget2x1
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,6 +23,7 @@ class WeatherSyncWorker(
 
             // Update all active glance widgets
             NothingRainWidget2x1().updateAll(context)
+            NothingRainWidget1x2().updateAll(context)
             NothingRainWidget1x1().updateAll(context)
 
             Result.success()

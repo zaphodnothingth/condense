@@ -59,100 +59,104 @@ class NothingRainWidget2x1 : GlanceAppWidget() {
                         .cornerRadius(20.dp)
                         .padding(horizontal = 14.dp, vertical = 10.dp)
                         .clickable(actionStartActivity<MainActivity>()),
-                    contentAlignment = Alignment.CenterStart
+                    contentAlignment = Alignment.Center
                 ) {
                     Column(
                         modifier = GlanceModifier.fillMaxSize(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalAlignment = Alignment.Start
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Line 1: ⛅ 68° 72/57
+                        // Row 1: Left [ ⛅ 77° ]  |  Right [ 84/69 ]
                         Row(
+                            modifier = GlanceModifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = conditionEmoji,
-                                style = TextStyle(fontSize = 15.sp)
-                            )
-                            Spacer(modifier = GlanceModifier.width(4.dp))
-                            Text(
-                                text = "$temp°",
-                                style = TextStyle(
-                                    color = ColorProvider(Color.White),
-                                    fontSize = 17.sp,
-                                    fontWeight = FontWeight.Bold
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = conditionEmoji,
+                                    style = TextStyle(fontSize = 16.sp)
                                 )
-                            )
-                            Spacer(modifier = GlanceModifier.width(6.dp))
+                                Spacer(modifier = GlanceModifier.width(4.dp))
+                                Text(
+                                    text = "$temp°",
+                                    style = TextStyle(
+                                        color = ColorProvider(Color.White),
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
+
+                            Spacer(modifier = GlanceModifier.defaultWeight())
+
                             Text(
                                 text = "$high/$low",
                                 style = TextStyle(
                                     color = ColorProvider(Color(0xFF8E8E93)),
-                                    fontSize = 13.sp,
+                                    fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
                                 )
                             )
                         }
 
-                        Spacer(modifier = GlanceModifier.height(6.dp))
+                        Spacer(modifier = GlanceModifier.height(8.dp))
 
-                        // Line 2: 0 UV 7
+                        // Row 2: Left [ 0 UV 7 ]  |  Right [ 🌧️ 5d ]
                         Row(
+                            modifier = GlanceModifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "${uv.toInt()}",
-                                style = TextStyle(
-                                    color = ColorProvider(Color.White),
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "${uv.toInt()}",
+                                    style = TextStyle(
+                                        color = ColorProvider(Color.White),
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 )
-                            )
-                            Spacer(modifier = GlanceModifier.width(4.dp))
-                            Text(
-                                text = "UV",
-                                style = TextStyle(
-                                    color = ColorProvider(Color(0xFF8E8E93)),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
+                                Spacer(modifier = GlanceModifier.width(3.dp))
+                                Text(
+                                    text = "UV",
+                                    style = TextStyle(
+                                        color = ColorProvider(Color(0xFF8E8E93)),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 )
-                            )
-                            Spacer(modifier = GlanceModifier.width(4.dp))
-                            Text(
-                                text = "${maxUv.toInt()}",
-                                style = TextStyle(
-                                    color = ColorProvider(Color.White),
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold
+                                Spacer(modifier = GlanceModifier.width(3.dp))
+                                Text(
+                                    text = "${maxUv.toInt()}",
+                                    style = TextStyle(
+                                        color = ColorProvider(Color.White),
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 )
-                            )
-                        }
+                            }
 
-                        Spacer(modifier = GlanceModifier.height(6.dp))
+                            Spacer(modifier = GlanceModifier.defaultWeight())
 
-                        // Line 3: 🌧️ -
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "🌧️",
-                                style = TextStyle(fontSize = 15.sp)
-                            )
-                            Spacer(modifier = GlanceModifier.width(5.dp))
-                            Text(
-                                text = rainTag,
-                                style = TextStyle(
-                                    color = ColorProvider(
-                                        when {
-                                            isRaining -> Color(0xFFFF453A)
-                                            rainTag != "-" -> Color(0xFF0A84FF)
-                                            else -> Color(0xFF8E8E93)
-                                        }
-                                    ),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "🌧️",
+                                    style = TextStyle(fontSize = 15.sp)
                                 )
-                            )
+                                Spacer(modifier = GlanceModifier.width(4.dp))
+                                Text(
+                                    text = rainTag,
+                                    style = TextStyle(
+                                        color = ColorProvider(
+                                            when {
+                                                isRaining -> Color(0xFFFF453A)
+                                                rainTag != "-" -> Color(0xFF0A84FF)
+                                                else -> Color(0xFF8E8E93)
+                                            }
+                                        ),
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
                         }
                     }
                 }
