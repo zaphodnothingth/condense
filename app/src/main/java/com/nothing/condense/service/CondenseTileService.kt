@@ -62,17 +62,17 @@ class CondenseTileService : TileService() {
         tile.icon = Icon.createWithResource(this, R.drawable.ic_qs_weather)
 
         if (summary != null) {
-            tile.label = "${summary.currentTemp}° ${summary.conditionEmoji}"
+            val rainTag = getRainTag(summary.isRainingNow, summary.nextRainHeadline)
+            tile.label = "${summary.conditionEmoji} ${summary.currentTemp}° - ${summary.todayHigh}/${summary.todayLow}"
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val rainSub = if (summary.isRainingNow) "Raining now" else summary.nextRainHeadline
-                tile.subtitle = "${summary.todayHigh}/${summary.todayLow} · UV ${summary.currentUv.toInt()} · $rainSub"
-                tile.contentDescription = "${summary.locationName}: ${summary.currentTemp} degrees, ${summary.conditionDescription}"
+                tile.subtitle = "${summary.currentUv.toInt()} UV ${summary.maxUvToday.toInt()} - 🌧️ $rainTag"
+                tile.contentDescription = "${summary.locationName}: ${summary.currentTemp} degrees, ${summary.todayHigh} high, ${summary.todayLow} low, UV ${summary.currentUv.toInt()} max ${summary.maxUvToday.toInt()}, rain $rainTag"
             }
             tile.updateTile()
         } else {
-            tile.label = "Condense"
+            tile.label = "⛅ --° - --/--"
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                tile.subtitle = "Updating weather..."
+                tile.subtitle = "0 UV 0 - 🌧️ -"
             }
             tile.updateTile()
 
@@ -81,15 +81,33 @@ class CondenseTileService : TileService() {
                 val refreshed = WeatherRepository.getInstance(applicationContext).currentSummary.value
                 if (refreshed != null) {
                     val freshTile = qsTile ?: return@launch
-                    freshTile.label = "${refreshed.currentTemp}° ${refreshed.conditionEmoji}"
+                    val rainTag = getRainTag(refreshed.isRainingNow, refreshed.nextRainHeadline)
+                    freshTile.label = "${refreshed.conditionEmoji} ${refreshed.currentTemp}° - ${refreshed.todayHigh}/${refreshed.todayLow}"
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        val rainSub = if (refreshed.isRainingNow) "Raining now" else refreshed.nextRainHeadline
-                        freshTile.subtitle = "${refreshed.todayHigh}/${refreshed.todayLow} · UV ${refreshed.currentUv.toInt()} · $rainSub"
+                        freshTile.subtitle = "${refreshed.currentUv.toInt()} UV ${refreshed.maxUvToday.toInt()} - 🌧️ $rainTag"
                     }
                     freshTile.updateTile()
                 }
             }
         }
+    }
+
+    private fun getRainTag(isRaining: Boolean, headline: String): String {
+        if (isRaining) return "Now"
+        val lower = headline.lowercase()
+        val minMatch = Regex("""in (\d+)\s*m""").find(lower)
+        if (minMatch != null) return "${minMatch.groupValues[1]}m"
+
+        val hrMatch = Regex("""in (\d+)\s*h""").find(lower)
+        if (hrMatch != null) return "${hrMatch.groupValues[1]}h"
+
+        val dayMatch = Regex("""in (\d+)\s*day""").find(lower)
+        if (dayMatch != null) return "${dayMatch.groupValues[1]}d"
+
+        if (lower.contains("tomorrow")) return "Tmrw"
+        if (lower.contains("no rain") || lower.contains("clear") || lower.isEmpty()) return "-"
+
+        return "-"
     }
 
     companion object {
