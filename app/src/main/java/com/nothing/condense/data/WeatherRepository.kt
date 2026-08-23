@@ -21,10 +21,15 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.coroutines.resume
 
+import android.location.LocationManager
+import com.google.android.gms.location.Priority
+import kotlinx.coroutines.withTimeoutOrNull
+
 class WeatherRepository private constructor(private val context: Context) {
 
     private val apiService = WeatherApiService()
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+    private val locationPrefs = context.getSharedPreferences("condense_location_prefs", Context.MODE_PRIVATE)
 
     private val _currentSummary = MutableStateFlow<WeatherSummary?>(null)
     val currentSummary: StateFlow<WeatherSummary?> = _currentSummary.asStateFlow()
@@ -35,18 +40,31 @@ class WeatherRepository private constructor(private val context: Context) {
     private val _radarHost = MutableStateFlow<String>("https://tilecache.rainviewer.com")
     val radarHost: StateFlow<String> = _radarHost.asStateFlow()
 
-    private val _currentLocation = MutableStateFlow<Pair<Double, Double>>(Pair(37.7749, -122.4194))
+    private val _currentLocation = MutableStateFlow<Pair<Double, Double>>(
+        Pair(
+            locationPrefs.getFloat("last_lat", 36.7682f).toDouble(),
+            locationPrefs.getFloat("last_lon", -76.2875f).toDouble()
+        )
+    )
     val currentLocation: StateFlow<Pair<Double, Double>> = _currentLocation.asStateFlow()
 
     @SuppressLint("MissingPermission")
     suspend fun refreshWeather(): WeatherSummary? = withContext(Dispatchers.IO) {
         try {
-            var lat = 37.7749
-            var lon = -122.4194
-            var locationName = "San Francisco"
+            var lat = locationPrefs.getFloat("last_lat", 36.7682f).toDouble()
+            var lon = locationPrefs.getFloat("last_lon", -76.2875f).toDouble()
+            var locationName = locationPrefs.getString("last_name", "Chesapeake") ?: "Chesapeake"
 
             try {
-                val loc: Location? = fusedLocationClient.lastLocation.awaitTask()
+                // 1. Try active GPS fix with timeout
+                val loc: Location? = withTimeoutOrNull(5000) {
+                    fusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null).awaitTask()
+                } ?: fusedLocationClient.lastLocation.awaitTask() ?: run {
+                    val locManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+                    locManager?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                        ?: locManager?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                }
+
                 if (loc != null) {
                     lat = loc.latitude
                     lon = loc.longitude
@@ -57,11 +75,18 @@ class WeatherRepository private constructor(private val context: Context) {
                     val addresses = geocoder.getFromLocation(lat, lon, 1)
                     if (!addresses.isNullOrEmpty()) {
                         val addr = addresses[0]
-                        locationName = addr.locality ?: addr.subAdminArea ?: addr.adminArea ?: "Current Location"
+                        locationName = addr.locality ?: addr.subAdminArea ?: addr.adminArea ?: locationName
                     }
+
+                    // Persist resolved location
+                    locationPrefs.edit()
+                        .putFloat("last_lat", lat.toFloat())
+                        .putFloat("last_lon", lon.toFloat())
+                        .putString("last_name", locationName)
+                        .apply()
                 }
             } catch (e: Exception) {
-                // Location permission or timeout fallback
+                // Location permission or timeout fallback to saved location
             }
 
             val (response, aqiResponse) = coroutineScope {

@@ -50,12 +50,12 @@ class CondenseApp : Application() {
             .build()
 
         val syncRequest = PeriodicWorkRequestBuilder<WeatherSyncWorker>(
-            20, TimeUnit.MINUTES
+            15, TimeUnit.MINUTES
         ).setConstraints(constraints).build()
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "WeatherSyncWork",
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.UPDATE,
             syncRequest
         )
     }
