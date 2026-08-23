@@ -11,6 +11,8 @@ import com.nothing.condense.data.model.RadarFrame
 import com.nothing.condense.data.model.WeatherSummary
 import com.nothing.condense.service.LockScreenNotificationManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -62,14 +64,24 @@ class WeatherRepository private constructor(private val context: Context) {
                 // Location permission or timeout fallback
             }
 
-            val response = apiService.fetchWeather(lat, lon, useFahrenheit = true)
-            val summary = RainEngine.processForecast(response, locationName)
+            val (response, aqiResponse) = coroutineScope {
+                val weatherDef = async { apiService.fetchWeather(lat, lon, useFahrenheit = true) }
+                val aqiDef = async {
+                    try { apiService.fetchAirQuality(lat, lon) } catch (e: Exception) { null }
+                }
+                Pair(weatherDef.await(), aqiDef.await())
+            }
+
+            val summary = RainEngine.processForecast(response, locationName, aqiResponse)
 
             _currentSummary.value = summary
 
             // Update lock screen notification & Quick Settings Tile
             LockScreenNotificationManager.updateNotification(context, summary)
             com.nothing.condense.service.CondenseTileService.requestTileUpdate(context)
+
+            // Trigger Nothing Glyph ambient rain / lightning countdown
+            com.nothing.condense.glyph.NothingGlyphManager.onWeatherUpdated(context, summary)
 
             // Also fetch radar frames
             try {

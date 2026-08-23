@@ -21,7 +21,13 @@ data class CurrentWeather(
     @SerialName("apparent_temperature") val apparentTemperature: Double? = null,
     val precipitation: Double? = null,
     @SerialName("weather_code") val weatherCode: Int? = null,
-    @SerialName("uv_index") val uvIndex: Double? = null
+    @SerialName("uv_index") val uvIndex: Double? = null,
+    @SerialName("surface_pressure") val surfacePressure: Double? = null,
+    @SerialName("wind_speed_10m") val windSpeed: Double? = null,
+    @SerialName("wind_direction_10m") val windDirection: Int? = null,
+    @SerialName("wind_gusts_10m") val windGusts: Double? = null,
+    @SerialName("dew_point_2m") val dewPoint: Double? = null,
+    @SerialName("cloud_cover") val cloudCover: Int? = null
 )
 
 @Serializable
@@ -42,7 +48,22 @@ data class DailyWeather(
     @SerialName("uv_index_max") val maxUvIndices: List<Double> = emptyList(),
     @SerialName("precipitation_probability_max") val maxPrecipitationProbabilities: List<Int> = emptyList(),
     @SerialName("precipitation_sum") val precipitationSums: List<Double> = emptyList(),
-    @SerialName("weather_code") val weatherCodes: List<Int> = emptyList()
+    @SerialName("weather_code") val weatherCodes: List<Int> = emptyList(),
+    val sunrise: List<String> = emptyList(),
+    val sunset: List<String> = emptyList()
+)
+
+@Serializable
+data class AirQualityResponse(
+    val current: CurrentAirQuality? = null
+)
+
+@Serializable
+data class CurrentAirQuality(
+    val time: String? = null,
+    @SerialName("us_aqi") val usAqi: Int? = null,
+    @SerialName("pm2_5") val pm25: Double? = null,
+    @SerialName("pm10") val pm10: Double? = null
 )
 
 @Serializable
@@ -84,7 +105,27 @@ data class WeatherSummary(
     val conditionEmoji: String,
     val hourlyForecast: List<HourlyItem>,
     val dailyForecast: List<DailyItem> = emptyList(),
+    val meteoTelemetry: MeteoTelemetry? = null,
     val lastUpdated: Long = System.currentTimeMillis()
+)
+
+data class MeteoTelemetry(
+    val aqi: Int,
+    val aqiCategory: String,
+    val pm25: Double,
+    val pm10: Double,
+    val windSpeedMph: Int,
+    val windDirectionCardinal: String,
+    val windGustsMph: Int,
+    val pressureHpa: Int,
+    val pressureTrend: String,
+    val dewPoint: Int,
+    val humidity: Int,
+    val cloudCoverPercent: Int,
+    val sunriseStr: String,
+    val sunsetStr: String,
+    val daylightLeftStr: String,
+    val goldenHourStr: String
 )
 
 data class HourlyItem(

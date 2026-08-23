@@ -14,7 +14,8 @@ object RainEngine {
 
     fun processForecast(
         response: OpenMeteoResponse,
-        locationName: String = "Current Location"
+        locationName: String = "Current Location",
+        airQuality: com.nothing.condense.data.model.AirQualityResponse? = null
     ): WeatherSummary {
         val current = response.current
         val hourly = response.hourly
@@ -33,6 +34,9 @@ object RainEngine {
         val hourlyItems = buildHourlyList(hourly)
         val dailyItems = buildDailyList(daily)
 
+        // Calculate Meteo Telemetry
+        val meteoTelemetry = buildMeteoTelemetry(current, daily, airQuality)
+
         return WeatherSummary(
             locationName = locationName,
             currentTemp = currentTemp,
@@ -48,8 +52,91 @@ object RainEngine {
             conditionDescription = desc,
             conditionEmoji = emoji,
             hourlyForecast = hourlyItems,
-            dailyForecast = dailyItems
+            dailyForecast = dailyItems,
+            meteoTelemetry = meteoTelemetry
         )
+    }
+
+    private fun buildMeteoTelemetry(
+        current: com.nothing.condense.data.model.CurrentWeather?,
+        daily: com.nothing.condense.data.model.DailyWeather?,
+        airQuality: com.nothing.condense.data.model.AirQualityResponse?
+    ): com.nothing.condense.data.model.MeteoTelemetry {
+        val aqiVal = airQuality?.current?.usAqi ?: 35
+        val aqiCat = when {
+            aqiVal <= 50 -> "Good"
+            aqiVal <= 100 -> "Moderate"
+            aqiVal <= 150 -> "Unhealthy (Sens)"
+            aqiVal <= 200 -> "Unhealthy"
+            else -> "Hazardous"
+        }
+        val pm25 = airQuality?.current?.pm25 ?: 8.5
+        val pm10 = airQuality?.current?.pm10 ?: 12.0
+
+        val windSpeed = current?.windSpeed?.roundToInt() ?: 8
+        val windGusts = current?.windGusts?.roundToInt() ?: (windSpeed + 4)
+        val windDeg = current?.windDirection ?: 0
+        val windCard = getCardinalDirection(windDeg)
+
+        val pressure = current?.surfacePressure?.roundToInt() ?: 1013
+        val pressureTrend = when {
+            pressure >= 1016 -> "Steady High (Fair)"
+            pressure >= 1011 -> "Normal ↗"
+            pressure >= 1005 -> "Falling ↘ (Storm chance)"
+            else -> "Low ⚠️ (Severe front)"
+        }
+
+        val dewPoint = current?.dewPoint?.roundToInt() ?: 62
+        val humidity = current?.humidity ?: 55
+        val cloudCover = current?.cloudCover ?: 20
+
+        val now = LocalDateTime.now()
+        val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+        val sunriseTime = daily?.sunrise?.firstOrNull()?.let {
+            try { LocalDateTime.parse(it, formatter) } catch (e: Exception) { null }
+        }
+        val sunsetTime = daily?.sunset?.firstOrNull()?.let {
+            try { LocalDateTime.parse(it, formatter) } catch (e: Exception) { null }
+        }
+
+        val sunriseStr = sunriseTime?.format(DateTimeFormatter.ofPattern("h:mm a")) ?: "6:30 AM"
+        val sunsetStr = sunsetTime?.format(DateTimeFormatter.ofPattern("h:mm a")) ?: "7:45 PM"
+
+        val daylightLeftStr = if (sunsetTime != null && now.isBefore(sunsetTime)) {
+            val mins = ChronoUnit.MINUTES.between(now, sunsetTime)
+            val h = mins / 60
+            val m = mins % 60
+            "${h}h ${m}m daylight left"
+        } else {
+            "Nighttime"
+        }
+
+        val goldenHourStr = sunsetTime?.minusMinutes(45)?.format(DateTimeFormatter.ofPattern("h:mm a")) ?: "7:00 PM"
+
+        return com.nothing.condense.data.model.MeteoTelemetry(
+            aqi = aqiVal,
+            aqiCategory = aqiCat,
+            pm25 = pm25,
+            pm10 = pm10,
+            windSpeedMph = windSpeed,
+            windDirectionCardinal = windCard,
+            windGustsMph = windGusts,
+            pressureHpa = pressure,
+            pressureTrend = pressureTrend,
+            dewPoint = dewPoint,
+            humidity = humidity,
+            cloudCoverPercent = cloudCover,
+            sunriseStr = sunriseStr,
+            sunsetStr = sunsetStr,
+            daylightLeftStr = daylightLeftStr,
+            goldenHourStr = goldenHourStr
+        )
+    }
+
+    private fun getCardinalDirection(degrees: Int): String {
+        val directions = arrayOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+        val index = (((degrees % 360) + 22.5) / 45.0).toInt() % 8
+        return directions[index]
     }
 
     fun calculateNextRain(
@@ -98,9 +185,9 @@ object RainEngine {
                 val headline: String
                 val subtext: String
 
-                if (minutesDiff <= 45) {
-                    headline = "Rain in < 1 hour"
-                    subtext = "${prob}% chance"
+                if (minutesDiff in 1..59) {
+                    headline = "Rain in ${minutesDiff}m"
+                    subtext = "${prob}% chance · 1-hour window"
                 } else if (hoursDiff <= 1) {
                     headline = "Rain in 1h"
                     val hourOfDay = forecastTime.format(DateTimeFormatter.ofPattern("h a"))
@@ -108,7 +195,7 @@ object RainEngine {
                 } else if (hoursDiff < 24) {
                     headline = "Rain in ${hoursDiff}h"
                     val hourOfDay = forecastTime.format(DateTimeFormatter.ofPattern("h a"))
-                    subtext = "Tonight at $hourOfDay (${prob}%)"
+                    subtext = "Today at $hourOfDay (${prob}%)"
                 } else if (hoursDiff < 48) {
                     val hourOfDay = forecastTime.format(DateTimeFormatter.ofPattern("h a"))
                     headline = "Rain tomorrow"

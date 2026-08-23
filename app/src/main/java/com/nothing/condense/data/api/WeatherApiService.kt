@@ -1,5 +1,6 @@
 package com.nothing.condense.data.api
 
+import com.nothing.condense.data.model.AirQualityResponse
 import com.nothing.condense.data.model.OpenMeteoResponse
 import com.nothing.condense.data.model.RainViewerResponse
 import io.ktor.client.HttpClient
@@ -30,11 +31,22 @@ class WeatherApiService(
         val precipUnit = if (useFahrenheit) "inch" else "mm"
         val url = "https://api.open-meteo.com/v1/forecast?" +
                 "latitude=$latitude&longitude=$longitude" +
-                "&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,uv_index" +
+                "&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,uv_index,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,dew_point_2m,cloud_cover" +
                 "&hourly=temperature_2m,precipitation_probability,precipitation,uv_index,weather_code" +
-                "&daily=temperature_2m_max,temperature_2m_min,uv_index_max,precipitation_probability_max,precipitation_sum,weather_code" +
+                "&daily=temperature_2m_max,temperature_2m_min,uv_index_max,precipitation_probability_max,precipitation_sum,weather_code,sunrise,sunset" +
                 "&forecast_days=16" +
-                "&temperature_unit=$tempUnit&precipitation_unit=$precipUnit&timezone=auto"
+                "&temperature_unit=$tempUnit&precipitation_unit=$precipUnit&wind_speed_unit=mph&timezone=auto"
+
+        return client.get(url).body()
+    }
+
+    suspend fun fetchAirQuality(
+        latitude: Double,
+        longitude: Double
+    ): AirQualityResponse {
+        val url = "https://air-quality-api.open-meteo.com/v1/air-quality?" +
+                "latitude=$latitude&longitude=$longitude" +
+                "&current=us_aqi,pm2_5,pm10"
 
         return client.get(url).body()
     }

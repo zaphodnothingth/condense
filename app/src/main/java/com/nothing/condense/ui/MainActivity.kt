@@ -56,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -65,6 +66,7 @@ import com.nothing.condense.data.RainEngine
 import com.nothing.condense.data.WeatherRepository
 import com.nothing.condense.data.model.DailyItem
 import com.nothing.condense.data.model.HourlyItem
+import com.nothing.condense.data.model.MeteoTelemetry
 import com.nothing.condense.data.model.WeatherSummary
 import com.nothing.condense.ui.radar.RadarMapView
 import com.nothing.condense.ui.theme.NothingRainTheme
@@ -134,6 +136,10 @@ fun WeatherDashboardScreen(repository: WeatherRepository) {
         }
     }
 
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("condense_prefs", android.content.Context.MODE_PRIVATE) }
+    var isMeteoMode by remember { mutableStateOf(prefs.getBoolean("is_meteo_mode", false)) }
+
     Scaffold(
         containerColor = Color(0xFF000000)
     ) { padding ->
@@ -160,34 +166,84 @@ fun WeatherDashboardScreen(repository: WeatherRepository) {
                     Text(
                         text = (summary?.locationName ?: "WEATHER").uppercase(),
                         color = Color.White,
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace,
-                        letterSpacing = 2.sp
+                        letterSpacing = 1.5.sp
                     )
                 }
 
-                IconButton(
-                    onClick = {
-                        scope.launch {
-                            isRefreshing = true
-                            repository.refreshWeather()
-                            isRefreshing = false
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Mode Selector: CORE (Essential) vs METEO (Detailed)
+                    Row(
+                        modifier = Modifier
+                            .background(Color(0xFF1C1C1E), RoundedCornerShape(16.dp))
+                            .padding(2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(if (!isMeteoMode) Color(0xFFD71920) else Color.Transparent)
+                                .clickable {
+                                    isMeteoMode = false
+                                    prefs.edit().putBoolean("is_meteo_mode", false).apply()
+                                }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "CORE",
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(if (isMeteoMode) Color(0xFFD71920) else Color.Transparent)
+                                .clickable {
+                                    isMeteoMode = true
+                                    prefs.edit().putBoolean("is_meteo_mode", true).apply()
+                                }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "METEO",
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
                         }
                     }
-                ) {
-                    if (isRefreshing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = Color(0xFFD71920),
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refresh",
-                            tint = Color(0xFF8E8E93)
-                        )
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    IconButton(
+                        onClick = {
+                            scope.launch {
+                                isRefreshing = true
+                                repository.refreshWeather()
+                                isRefreshing = false
+                            }
+                        }
+                    ) {
+                        if (isRefreshing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = Color(0xFFD71920),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Refresh",
+                                tint = Color(0xFF8E8E93)
+                            )
+                        }
                     }
                 }
             }
@@ -243,6 +299,20 @@ fun WeatherDashboardScreen(repository: WeatherRepository) {
 
                 // UV Index Card
                 UvIndexCard(data)
+
+                // Detailed Meteorologist Telemetry Modules (When in METEO mode)
+                if (isMeteoMode && data.meteoTelemetry != null) {
+                    val meteo = data.meteoTelemetry
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    AirQualityMeteoCard(meteo)
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    WindBarometerMeteoCard(meteo)
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    SolarArcMeteoCard(meteo)
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -849,5 +919,218 @@ fun getUvColor(uv: Double): Color {
         uv < 8.0 -> Color(0xFFFF9F0A) // Orange
         uv < 11.0 -> Color(0xFFFF453A) // Red
         else -> Color(0xFFBF5AF2) // Purple
+    }
+}
+
+@Composable
+fun AirQualityMeteoCard(telemetry: MeteoTelemetry) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF141416), RoundedCornerShape(24.dp))
+            .border(1.dp, Color(0xFF2C2C2E), RoundedCornerShape(24.dp))
+            .padding(18.dp)
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "🍃 AIR QUALITY & PARTICULATES",
+                    color = Color(0xFF8E8E93),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    letterSpacing = 1.5.sp
+                )
+                Text(
+                    text = telemetry.aqiCategory.uppercase(),
+                    color = when {
+                        telemetry.aqi <= 50 -> Color(0xFF34C759)
+                        telemetry.aqi <= 100 -> Color(0xFFFFCC00)
+                        telemetry.aqi <= 150 -> Color(0xFFFF9500)
+                        else -> Color(0xFFFF3B30)
+                    },
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "${telemetry.aqi}",
+                    color = Color.White,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = "US AQI · PM2.5: ${telemetry.pm25} µg/m³ · PM10: ${telemetry.pm10}",
+                    color = Color(0xFFA1A1A6),
+                    fontSize = 13.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            LinearProgressIndicator(
+                progress = { (telemetry.aqi / 200.0).toFloat().coerceIn(0f, 1f) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp),
+                color = when {
+                    telemetry.aqi <= 50 -> Color(0xFF34C759)
+                    telemetry.aqi <= 100 -> Color(0xFFFFCC00)
+                    telemetry.aqi <= 150 -> Color(0xFFFF9500)
+                    else -> Color(0xFFFF3B30)
+                },
+                trackColor = Color(0xFF2C2C2E)
+            )
+        }
+    }
+}
+
+@Composable
+fun WindBarometerMeteoCard(telemetry: MeteoTelemetry) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF141416), RoundedCornerShape(24.dp))
+            .border(1.dp, Color(0xFF2C2C2E), RoundedCornerShape(24.dp))
+            .padding(18.dp)
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "💨 WIND & BAROMETER TENDENCY",
+                    color = Color(0xFF8E8E93),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    letterSpacing = 1.5.sp
+                )
+                Text(
+                    text = "${telemetry.windDirectionCardinal} ${telemetry.windSpeedMph} MPH",
+                    color = Color(0xFF0A84FF),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "SUSTAINED / GUSTS", color = Color(0xFF636366), fontSize = 10.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(text = "${telemetry.windSpeedMph} mph (Gust ${telemetry.windGustsMph})", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "BAROMETER", color = Color(0xFF636366), fontSize = 10.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(text = "${telemetry.pressureHpa} hPa", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "DEW POINT", color = Color(0xFF636366), fontSize = 10.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(text = "${telemetry.dewPoint}°", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "HUMIDITY / CLOUDS", color = Color(0xFF636366), fontSize = 10.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(text = "${telemetry.humidity}% · ${telemetry.cloudCoverPercent}% Cloud", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SolarArcMeteoCard(telemetry: MeteoTelemetry) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF141416), RoundedCornerShape(24.dp))
+            .border(1.dp, Color(0xFF2C2C2E), RoundedCornerShape(24.dp))
+            .padding(18.dp)
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "🌅 SOLAR ARC & DAYLIGHT",
+                    color = Color(0xFF8E8E93),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    letterSpacing = 1.5.sp
+                )
+                Text(
+                    text = telemetry.daylightLeftStr.uppercase(),
+                    color = Color(0xFFFF9F0A),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "🌅", fontSize = 16.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(text = telemetry.sunriseStr, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+
+                Text(text = "───────●───────", color = Color(0xFFFF9F0A), fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "🌇", fontSize = 16.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(text = telemetry.sunsetStr, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "✨ Golden hour begins at ${telemetry.goldenHourStr}",
+                color = Color(0xFFA1A1A6),
+                fontSize = 13.sp
+            )
+        }
     }
 }
