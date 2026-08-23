@@ -1,4 +1,4 @@
-﻿package com.nothing.condense.ui.radar
+package com.nothing.condense.ui.radar
 
 import android.content.Context
 import android.graphics.Color as AndroidColor
@@ -127,28 +127,7 @@ fun RadarMapView(
                     )
                     setTileSource(darkTileSource)
 
-                    // 2. Pre-create radar layer overlays
-                    overlaysList.clear()
-                    radarFrames.forEachIndexed { index, frame ->
-                        val frameSource = XYTileSource(
-                            "Rain_${frame.time}",
-                            0,
-                            20,
-                            256,
-                            ".png",
-                            arrayOf("$radarHost${frame.path}/256/")
-                        )
-                        val provider = MapTileProviderBasic(ctx, frameSource)
-                        val overlay = TilesOverlay(provider, ctx).apply {
-                            loadingBackgroundColor = AndroidColor.TRANSPARENT
-                            loadingLineColor = AndroidColor.TRANSPARENT
-                            isEnabled = (index == 0)
-                        }
-                        overlays.add(overlay)
-                        overlaysList.add(overlay)
-                    }
-
-                    // 3. User Location Marker (Red dot)
+                    // 2. User Location Marker (Red dot)
                     val centerPoint = GeoPoint(latitude, longitude)
                     val userMarker = Marker(this).apply {
                         position = centerPoint
@@ -163,7 +142,7 @@ fun RadarMapView(
                     }
                     overlays.add(userMarker)
 
-                    controller.setZoom(8.5)
+                    controller.setZoom(7.0)
                     controller.setCenter(centerPoint)
 
                     setOnTouchListener { v, event ->
@@ -179,6 +158,33 @@ fun RadarMapView(
                     }
 
                     mapViewRef.value = this
+                }
+            },
+            update = { mapView ->
+                mapViewRef.value = mapView
+                if (radarFrames.isNotEmpty() && (overlaysList.isEmpty() || overlaysList.size != radarFrames.size)) {
+                    overlaysList.forEach { mapView.overlays.remove(it) }
+                    overlaysList.clear()
+
+                    radarFrames.forEachIndexed { index, frame ->
+                        val frameSource = XYTileSource(
+                            "Rain_${frame.time}",
+                            0,
+                            20,
+                            256,
+                            "/6/1_1.png",
+                            arrayOf("$radarHost${frame.path}/256/")
+                        )
+                        val provider = MapTileProviderBasic(mapView.context, frameSource)
+                        val overlay = TilesOverlay(provider, mapView.context).apply {
+                            loadingBackgroundColor = AndroidColor.TRANSPARENT
+                            loadingLineColor = AndroidColor.TRANSPARENT
+                            isEnabled = (index == currentFrameIndex)
+                        }
+                        mapView.overlays.add(0, overlay)
+                        overlaysList.add(overlay)
+                    }
+                    mapView.postInvalidate()
                 }
             },
             modifier = Modifier.fillMaxSize()
