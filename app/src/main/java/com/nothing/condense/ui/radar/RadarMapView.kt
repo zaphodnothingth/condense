@@ -46,6 +46,7 @@ import kotlinx.coroutines.delay
 import org.osmdroid.tileprovider.MapTileProviderBasic
 import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.tileprovider.tilesource.XYTileSource
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.util.MapTileIndex
 import org.osmdroid.views.MapView
@@ -86,13 +87,15 @@ fun RadarMapView(
             mapViewInstance?.let { map ->
                 radarOverlay?.let { map.overlays.remove(it) }
 
-                val tileSource = object : OnlineTileSourceBase(
-                    "RainViewer-${frame.time}",
+                val tileSource = object : XYTileSource(
+                    "RainViewer",
                     0, 12, 256, ".png",
                     arrayOf(radarHost)
                 ) {
+                    override fun getMaximumZoomLevel(): Int = 22
+
                     override fun getTileURLString(pMapTileIndex: Long): String {
-                        val zoom = MapTileIndex.getZoom(pMapTileIndex)
+                        val zoom = MapTileIndex.getZoom(pMapTileIndex).coerceIn(0, 12)
                         val x = MapTileIndex.getX(pMapTileIndex)
                         val y = MapTileIndex.getY(pMapTileIndex)
                         return "$baseUrl${frame.path}/256/$zoom/$x/$y/2/1_1.png"
@@ -120,7 +123,7 @@ fun RadarMapView(
                     setTileSource(TileSourceFactory.MAPNIK)
                     setMultiTouchControls(true)
                     minZoomLevel = 3.0
-                    maxZoomLevel = 12.0
+                    maxZoomLevel = 18.0
                     controller.setZoom(8.0)
                     controller.setCenter(GeoPoint(latitude, longitude))
 
