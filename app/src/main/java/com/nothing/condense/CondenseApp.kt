@@ -31,11 +31,13 @@ class CondenseApp : Application() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                getString(R.string.notification_channel_name),
-                NotificationManager.IMPORTANCE_LOW
+                "Condense Weather & Rain Live",
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = getString(R.string.notification_channel_desc)
+                description = "Pinned live weather and rain radar updates"
                 setShowBadge(false)
+                setSound(null, null)
+                enableVibration(false)
             }
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
@@ -59,7 +61,7 @@ class CondenseApp : Application() {
     }
 
     companion object {
-        const val CHANNEL_ID = "condense_channel"
+        const val CHANNEL_ID = "condense_weather_channel_v2"
         const val NOTIFICATION_ID = 1001
     }
 }

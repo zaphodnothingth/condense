@@ -38,12 +38,12 @@ object LockScreenNotificationManager {
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(title)
             .setContentText(content)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
             .setOngoing(true)
             .setSilent(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(pendingIntent)
-            .setCategory(Notification.CATEGORY_STATUS)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
             .build()
 
         try {
