@@ -1,81 +1,125 @@
 # Condense (Nothing Edition) 🌧️☀️
 
-A bespoke Android weather app and ultra-compact widget suite engineered specifically for **Nothing Phone 3** and **Nothing OS 2.x / 3.x**.
-
-Built to replicate and surpass the beloved **Apple Watch "Time to Next Rain" complication**, combining high-precision ensemble forecasting with the iconic Nothing monochrome and dot-matrix design language.
+An ultra-compact, high-density weather app, widget suite, and Quick Settings integration engineered specifically for **Nothing Phone** and **Nothing OS 2.x / 3.x**.
 
 ---
 
-## 📱 Features
+## 🎯 Design Philosophy: "Compact & Informative"
 
-### 1. "Time to Next Rain" Countdown Engine
-- **Ensemble Precision**: Powered by **Open-Meteo High-Resolution Ensemble API** (aggregating ECMWF IFS 0.25°, NOAA HRRR, and DWD ICON) + **RainViewer Doppler Radar**.
-- **Real-Time Nowcasting**: Scans minute-by-minute and hourly precipitation vectors.
+In true **Nothing OS** spirit, Condense rejects bloated multi-screen weather interfaces, oversized illustrations, and useless whitespace. Every element is designed around three strict principles:
+
+1. **Information Density without Clutter**: Maximum telemetry (Temp, Range, UV, Rain Nowcasting, Accumulation) presented in clean, scannable, monospace-aligned layouts.
+2. **Zero-Wait Glances**: Critical weather vectors (next precipitation window, peak UV, 7-day rainfall) must be readable in under half a second without waiting for text to scroll or marquee.
+3. **Nothing Aesthetic Alignment**: Deep OLED black backgrounds (`#000000`, `#141416`), signature **Nothing Red** (`#D71920`) accent nodes, Nd-dot typography cues, and native dark-matter CartoDB mapping.
+
+---
+
+## 📱 Current Feature Suite
+
+### 1. "Time to Next Rain" Engine & 7-Day Rainfall Trend
+- **Ensemble Precision**: Powered by the **Open-Meteo High-Resolution Ensemble API** + **RainViewer Live Radar**.
 - **Smart Countdown**:
-  - `🌧️ Raining Now` (Ongoing precipitation)
-  - `☔ Rain in 45m` (85% probability · 0.15 in)
-  - `☔ Rain in 3h` (Today at 4 PM · 70%)
-  - `☔ Rain tomorrow` (Around 2 PM · 60%)
-  - `☀️ No rain expected` (Clear for next 7 days)
+  - `🌧️ Raining Now`
+  - `☔ Rain in 45m` (85% probability)
+  - `☔ Rain in 4 days` (Wed 3 PM · 28%)
+  - `☀️ No rain expected` (Clear for 7+ days)
+- **7-Day Rainfall Trend Line Chart (Inches)**:
+  - Daily rainfall amounts in inches (`0"`, `1.4"`, `0.8"`) plotted on a smooth blue bezier curve with area gradient fill.
+  - Cumulative 7-day rainfall total header (`Total: 2.19"`).
 
-### 2. Ultra-Compact Nothing OS Widgets
-- **2x1 Nothing Weather Pill**:
-  - Top Line: `74° · H:82° L:61° · UV 6 (Max 8)` with signature Nothing Red accent dot.
-  - Bottom Line: `🌧️ Next rain: In 3h (80%) · Heavy showers`
-  - Compact rounded pill format designed to fit seamlessly into Nothing OS grids.
-- **1x1 Minimal Quick Circle**:
-  - Displays temperature, rain status dot, and next rain window (`3h`, `Now`, `Dry`).
-- **One-Tap Action**: Tapping any widget instantly launches the full app centered directly on your live radar.
+### 2. UV Index & 7-Day Peak Sun Exposure
+- **Live UV Telemetry**: Current UV index + today's maximum level with risk categories (`Low`, `Moderate`, `High`, `Very High`, `Extreme`).
+- **7-Day UV Peak Line Chart**:
+  - Forecasted peak daily UV index with sun-gradient glow and category-coded data nodes.
+  - Peak week risk indicator (`Peak: 7 (High)`).
 
-### 3. Lock Screen & Always-On Display (AOD)
-- **Lock Screen Widget Slot**: Fits into the Nothing OS 4-slot lock screen widget tray.
-- **Persistent Low-Priority Status Ticker**: An optional 1-line silent status bar & lockscreen notification that gives you real-time rain countdowns without unlocking your device.
+### 3. Interactive Doppler Radar Map with Time Scrubber
+- **Hardware-Accelerated Dark Map**: Native CartoDB Dark Matter base tiles scaled up to zoom level 22.
+- **NEXRAD Color Scheme**: Multi-intensity Doppler precipitation echoes (green $\rightarrow$ yellow $\rightarrow$ orange $\rightarrow$ red $\rightarrow$ magenta) over a transparent canvas.
+- **Interactive Time Scrubber Bar**: Drag the Nothing Red slider thumb back and forth across 2+ hours of radar frames to inspect storm cells minute-by-minute with automatic pause-on-drag and live timestamp readout.
+- **Zero-Flicker Architecture**: Pre-allocated memory overlay pool with instant `overlay.isEnabled` toggling.
 
-### 4. Interactive Live Doppler Radar Map
-- Hardware-accelerated precipitation radar powered by Mapnik + RainViewer tile layers.
-- Play/Pause animation controller and scrubber for past & future nowcast frames.
-- Auto-centers on your current GPS location.
+### 4. Compact Widgets Suite (Nothing OS Native)
+- **1x2 Vertical Pill**:
+  ```text
+  ┌────────┐
+  │ ⛅ 77° │
+  │ 84/69  │
+  │ 0 UV 7 │
+  │ 🌧️ 5d  │
+  └────────┘
+  ```
+- **2x1 Horizontal Pill**:
+  ```text
+  ┌─────────────────────────┐
+  │ ⛅ 77°     │    84/69    │
+  │ 0 UV 7     │    🌧️ 5d    │
+  └─────────────────────────┘
+  ```
+- **1x1 Minimal Glyph**: Circular / square quick glance with current temp, condition emoji, and rain status dot.
+
+### 5. Quick Settings Tile (`CondenseTileService`)
+- Formatted specifically for Nothing OS expanded tiles and Lock Screen / Home Screen Quick Settings widgets:
+  ```text
+  ┌────────────────────────┐
+  │ ⛅ 77° - 84/69          │
+  │ 0 UV 7 - 🌧️ 5d        │
+  └────────────────────────┘
+  ```
+- Instant background synchronization and one-tap app launch.
+
+### 6. Pinned High-Priority Notification
+- Pinned persistent notification channel with `PRIORITY_MAX` and `IMPORTANCE_HIGH` keeping live weather and rain countdowns anchored at the top of the notification shade.
 
 ---
 
-## 🛠️ Project Structure
+## 🔭 Feature Exploration & Module Roadmap
 
-```
-condense/
-├── app/
-│   ├── src/main/java/com/nothing/rainglance/
-│   │   ├── CondenseApp.kt                 # App init, WorkManager & Notification channels
-│   │   ├── data/
-│   │   │   ├── RainEngine.kt                # Pure algorithmic next-rain & UV calculation
-│   │   │   ├── WeatherRepository.kt         # GPS location, API caller & cache
-│   │   │   ├── api/WeatherApiService.kt     # Open-Meteo & RainViewer REST client
-│   │   │   └── model/WeatherModels.kt       # Forecast & radar models
-│   │   ├── widget/
-│   │   │   ├── NothingRainWidget2x1.kt       # 2x1 Nothing Pill Glance Widget
-│   │   │   ├── NothingRainWidget1x1.kt       # 1x1 Glance Widget
-│   │   │   └── NothingRainWidgetReceivers.kt # AppWidget receivers
-│   │   ├── service/
-│   │   │   ├── LockScreenNotificationManager.kt # Persistent lock screen ticker
-│   │   │   └── WeatherSyncWorker.kt         # Background periodic sync (WorkManager)
-│   │   └── ui/
-│   │       ├── MainActivity.kt              # Main Jetpack Compose dashboard
-│   │       ├── radar/RadarMapView.kt        # Interactive Doppler radar map
-│   │       └── theme/NothingTheme.kt        # Nothing OS monochrome & red dot palette
-│   └── src/test/java/com/nothing/rainglance/
-│       └── RainEngineTest.kt                # Unit test suite
-```
+Keeping with the **"Compact & Informative"** philosophy, here are high-impact modules and capabilities ready for exploration:
+
+### 💨 Module A: Air Quality (AQI) & Pollen Glance
+- **Data Source**: Open-Meteo Air Quality API (free, real-time).
+- **Compact UI**: Ultra-compact 1-row telemetry card:
+  `🍃 AQI 24 (Good) · PM2.5: 6 µg/m³ · Tree Pollen: Low`
+- **Widget Integration**: Optional toggle on 2x1 pill or dedicated 1x1 AQI tile.
+
+### 🧭 Module B: Wind Vectors & Barometric Pressure Tendency
+- **Data Source**: Open-Meteo Wind Speed, Direction, Gusts & Surface Pressure.
+- **Compact UI**:
+  `💨 12 mph NE (Gust 22) · 1016 hPa ↗ (Rising / Clearing)`
+- **Barometer Forecast Value**: Rapidly falling pressure serves as an instant physical indicator of approaching storm fronts.
+
+### 🌅 Module C: Solar Arc & Golden Hour Countdown
+- **Compact UI**: Sleek dot-matrix daylight progress bar:
+  `🌅 6:24 AM ──●───────── 🌇 7:51 PM (2h 15m daylight left · Golden hour 7:15 PM)`
+
+### 🔴 Module D: Nothing Glyph Interface Ambient Alert
+- **Nothing Phone Glyph Integration**: Trigger a subtle, non-intrusive Glyph pulse or Glyph progress bar countdown when rain is detected within $< 15$ minutes.
+
+### 🗺️ Module E: Mini Radar Home Screen Widget (2x2)
+- A compact 2x2 home screen widget rendering a mini live Doppler radar tile loop centered on your exact coordinates.
 
 ---
 
-## 🚀 How to Build & Run
+## 🛠️ Tech Stack & Architecture
 
-### In Android Studio:
-1. Open Android Studio.
-2. Select **Open** and choose `C:\Users\steve\gits\condense`.
-3. Connect your **Nothing Phone 3** via USB (or wireless debugging) with **Developer Options > USB Debugging** enabled.
-4. Click **Run 'app'** (`Shift + F10`).
+- **Language & Framework**: Kotlin 1.9+, Jetpack Compose, Compose Glance (AppWidgets)
+- **Map & Radar**: osmdroid (OpenStreetMap), CartoDB Dark Matter Tiles, RainViewer API v2
+- **Weather Telemetry**: Open-Meteo Ensemble Weather API (ECMWF IFS, NOAA HRRR, DWD ICON)
+- **Networking**: Ktor Client with OkHttp engine & Kotlinx Serialization
+- **Background Tasks**: AndroidX WorkManager, Foreground Service, Android Quick Settings TileService
 
-### On your Nothing Phone 3:
-1. Long-press an empty space on your **Home Screen** → tap **Widgets**.
-2. Scroll to **Condense** → drag the **Nothing Weather Pill (2x1)** or **Nothing Weather (1x1)** widget onto your screen.
-3. For the **Lock Screen**: Go to **Settings > Display > Lock Screen > Lock Screen Widgets** and add the Condense widget.
+---
+
+## 🚀 Installation & Deployment
+
+```powershell
+# Set Java 21 Home
+$env:JAVA_HOME = "C:\Users\steve\.jdks\jbr-21.0.11"
+
+# Build Debug APK
+.\gradlew.bat assembleDebug
+
+# Install to connected Nothing Phone
+adb install -r app\build\outputs\apk\debug\app-debug.apk
+```
