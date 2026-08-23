@@ -57,7 +57,7 @@ object RainEngine {
         hourly: com.nothing.condense.data.model.HourlyWeather?,
         currentTime: LocalDateTime = LocalDateTime.now()
     ): Triple<Boolean, String, String> {
-        val isRainingNow = (currentPrecipitation ?: 0.0) > 0.02
+        val isRainingNow = (currentPrecipitation ?: 0.0) > 0.01
 
         if (isRainingNow) {
             return Triple(true, "Raining Now", "Ongoing precipitation")
@@ -69,6 +69,7 @@ object RainEngine {
 
         val now = currentTime
         val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+        val rainCodes = setOf(51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 85, 86, 95, 96, 99)
 
         for (i in hourly.time.indices) {
             val timeStr = hourly.time[i]
@@ -84,21 +85,30 @@ object RainEngine {
 
             val prob = hourly.precipitationProbabilities.getOrNull(i) ?: 0
             val amount = hourly.precipitation.getOrNull(i) ?: 0.0
+            val code = hourly.weatherCodes.getOrNull(i) ?: 0
 
-            // Trigger criteria: >= 30% chance or measurable precipitation
-            if (prob >= 30 || amount > 0.02) {
-                val minutesDiff = ChronoUnit.MINUTES.between(now, forecastTime)
-                val hoursDiff = ((minutesDiff + 30) / 60).coerceAtLeast(0)
+            val minutesDiff = ChronoUnit.MINUTES.between(now, forecastTime)
+            val hoursDiff = ((minutesDiff + 30) / 60).coerceAtLeast(0)
+
+            // Sensitive trigger: 20%+ chance in next 24h, or 25%+ further out, or any rain weather code
+            val isTrigger = (hoursDiff <= 24 && (prob >= 20 || amount > 0.005 || code in rainCodes)) ||
+                    (hoursDiff > 24 && (prob >= 25 || amount > 0.01 || code in rainCodes))
+
+            if (isTrigger) {
                 val headline: String
                 val subtext: String
 
                 if (minutesDiff <= 45) {
                     headline = "Rain in < 1 hour"
-                    subtext = "${prob}% chance ($amount in)"
+                    subtext = "${prob}% chance"
+                } else if (hoursDiff <= 1) {
+                    headline = "Rain in 1h"
+                    val hourOfDay = forecastTime.format(DateTimeFormatter.ofPattern("h a"))
+                    subtext = "Around $hourOfDay (${prob}%)"
                 } else if (hoursDiff < 24) {
                     headline = "Rain in ${hoursDiff}h"
                     val hourOfDay = forecastTime.format(DateTimeFormatter.ofPattern("h a"))
-                    subtext = "Today at $hourOfDay (${prob}%)"
+                    subtext = "Tonight at $hourOfDay (${prob}%)"
                 } else if (hoursDiff < 48) {
                     val hourOfDay = forecastTime.format(DateTimeFormatter.ofPattern("h a"))
                     headline = "Rain tomorrow"

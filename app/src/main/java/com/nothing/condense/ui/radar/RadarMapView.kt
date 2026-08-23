@@ -1,61 +1,28 @@
-package com.nothing.condense.ui.radar
+﻿package com.nothing.condense.ui.radar
 
-import android.content.Context
+import android.annotation.SuppressLint
+import android.graphics.Color as AndroidColor
+import android.view.View
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.nothing.condense.data.model.RadarFrame
-import kotlinx.coroutines.delay
-import org.osmdroid.tileprovider.MapTileProviderBasic
-import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.tileprovider.tilesource.XYTileSource
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.util.MapTileIndex
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.TilesOverlay
-import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import org.json.JSONArray
+import org.json.JSONObject
 
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun RadarMapView(
     latitude: Double,
@@ -64,181 +31,192 @@ fun RadarMapView(
     radarHost: String,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    var currentFrameIndex by remember { mutableIntStateOf(0) }
-    var isPlaying by remember { mutableStateOf(true) }
-    var mapViewInstance by remember { mutableStateOf<MapView?>(null) }
-    var radarOverlay by remember { mutableStateOf<TilesOverlay?>(null) }
-
-    // Loop animation when playing
-    LaunchedEffect(isPlaying, radarFrames.size) {
-        if (radarFrames.isNotEmpty() && isPlaying) {
-            while (true) {
-                delay(650)
-                currentFrameIndex = (currentFrameIndex + 1) % radarFrames.size
-            }
+    val framesJson = remember(radarFrames) {
+        val array = JSONArray()
+        radarFrames.forEach { frame ->
+            val obj = JSONObject()
+            obj.put("time", frame.time)
+            obj.put("path", frame.path)
+            array.put(obj)
         }
+        array.toString()
     }
 
-    // Update overlay when frame changes
-    LaunchedEffect(currentFrameIndex, radarFrames, radarHost) {
-        if (radarFrames.isNotEmpty() && currentFrameIndex < radarFrames.size && mapViewInstance != null) {
-            val frame = radarFrames[currentFrameIndex]
-            mapViewInstance?.let { map ->
-                radarOverlay?.let { map.overlays.remove(it) }
+    val html = remember(latitude, longitude, framesJson, radarHost) {
+        """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+            <style>
+                html, body, #map { margin: 0; padding: 0; width: 100%; height: 100%; background: #121214; }
+                .leaflet-control-attribution { display: none !important; }
+                .user-marker {
+                    width: 14px;
+                    height: 14px;
+                    background: #D71920;
+                    border: 2.5px solid #FFFFFF;
+                    border-radius: 50%;
+                    box-shadow: 0 0 10px rgba(215, 25, 32, 0.8);
+                }
+                .radar-controls {
+                    position: absolute;
+                    bottom: 12px;
+                    left: 12px;
+                    right: 12px;
+                    z-index: 1000;
+                    background: rgba(20, 20, 22, 0.92);
+                    backdrop-filter: blur(10px);
+                    border: 1px solid #2C2C2E;
+                    border-radius: 16px;
+                    padding: 8px 14px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    color: white;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                }
+                .btn {
+                    background: #D71920;
+                    border: none;
+                    border-radius: 50%;
+                    width: 32px;
+                    height: 32px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-size: 14px;
+                    cursor: pointer;
+                }
+                .time-label {
+                    font-size: 13px;
+                    font-weight: bold;
+                    margin-left: 10px;
+                }
+                .sub-label {
+                    font-size: 10px;
+                    color: #8E8E93;
+                    letter-spacing: 0.5px;
+                    text-transform: uppercase;
+                }
+            </style>
+        </head>
+        <body>
+            <div id="map"></div>
+            <div class="radar-controls">
+                <div style="display: flex; align-items: center;">
+                    <button class="btn" id="playBtn" onclick="togglePlay()">⏸</button>
+                    <div style="margin-left: 10px;">
+                        <div class="sub-label">Live Doppler Radar</div>
+                        <div class="time-label" id="timeLabel">Loading...</div>
+                    </div>
+                </div>
+                <button class="btn" style="background: #2C2C2E;" onclick="recenter()">📍</button>
+            </div>
 
-                val tileSource = object : XYTileSource(
-                    "RainViewer",
-                    0, 12, 256, ".png",
-                    arrayOf(radarHost)
-                ) {
-                    override fun getMaximumZoomLevel(): Int = 22
+            <script>
+                const lat = $latitude;
+                const lon = $longitude;
+                const host = "$radarHost";
+                const frames = $framesJson;
 
-                    override fun getTileURLString(pMapTileIndex: Long): String {
-                        val zoom = MapTileIndex.getZoom(pMapTileIndex).coerceIn(0, 12)
-                        val x = MapTileIndex.getX(pMapTileIndex)
-                        val y = MapTileIndex.getY(pMapTileIndex)
-                        return "$baseUrl${frame.path}/256/$zoom/$x/$y/2/1_1.png"
-                    }
+                const map = L.map('map', {
+                    center: [lat, lon],
+                    zoom: 8,
+                    zoomControl: false,
+                    attributionControl: false
+                });
+
+                // Smooth dark base map tiles
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 19,
+                    subdomains: 'abcd'
+                }).addTo(map);
+
+                // User Location Pulse Dot
+                const userIcon = L.divIcon({
+                    className: 'user-marker',
+                    iconSize: [14, 14],
+                    iconAnchor: [7, 7]
+                });
+                L.marker([lat, lon], { icon: userIcon }).addTo(map);
+
+                // Pre-cache radar layers
+                const radarLayers = [];
+                frames.forEach(frame => {
+                    const layer = L.tileLayer(host + frame.path + '/256/{z}/{x}/{y}/2/1_1.png', {
+                        opacity: 0,
+                        zIndex: 100,
+                        maxZoom: 19,
+                        maxNativeZoom: 12
+                    });
+                    layer.addTo(map);
+                    radarLayers.push({ layer: layer, time: frame.time });
+                });
+
+                let currentIndex = 0;
+                let isPlaying = true;
+                let timer = null;
+
+                function showFrame(index) {
+                    if (!radarLayers.length) return;
+                    radarLayers.forEach((item, i) => {
+                        item.layer.setOpacity(i === index ? 0.75 : 0);
+                    });
+                    const date = new Date(radarLayers[index].time * 1000);
+                    document.getElementById('timeLabel').innerText = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 }
 
-                val provider = MapTileProviderBasic(context, tileSource)
-                val newOverlay = TilesOverlay(provider, context).apply {
-                    loadingBackgroundColor = android.graphics.Color.TRANSPARENT
+                function step() {
+                    if (!isPlaying || !radarLayers.length) return;
+                    currentIndex = (currentIndex + 1) % radarLayers.length;
+                    showFrame(currentIndex);
                 }
-                map.overlays.add(newOverlay)
-                radarOverlay = newOverlay
-                map.invalidate()
-            }
-        }
+
+                if (radarLayers.length > 0) {
+                    currentIndex = radarLayers.length - 1;
+                    showFrame(currentIndex);
+                    timer = setInterval(step, 650);
+                }
+
+                function togglePlay() {
+                    isPlaying = !isPlaying;
+                    document.getElementById('playBtn').innerText = isPlaying ? '⏸' : '▶';
+                }
+
+                function recenter() {
+                    map.setView([lat, lon], 8);
+                }
+            </script>
+        </body>
+        </html>
+        """.trimIndent()
     }
 
     Box(
         modifier = modifier
-            .background(Color(0xFF141416), RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color(0xFF141416))
     ) {
         AndroidView(
             factory = { ctx ->
-                MapView(ctx).apply {
-                    setTileSource(TileSourceFactory.MAPNIK)
-                    setMultiTouchControls(true)
-                    minZoomLevel = 3.0
-                    maxZoomLevel = 18.0
-                    controller.setZoom(8.0)
-                    controller.setCenter(GeoPoint(latitude, longitude))
-
-                    // Allow panning without triggering parent vertical scroll
-                    setOnTouchListener { v, event ->
-                        v.parent?.requestDisallowInterceptTouchEvent(true)
-                        false
-                    }
-
-                    // Location overlay
-                    val locationOverlay = MyLocationNewOverlay(this)
-                    locationOverlay.enableMyLocation()
-                    overlays.add(locationOverlay)
-
-                    mapViewInstance = this
+                WebView(ctx).apply {
+                    setLayerType(View.LAYER_TYPE_HARDWARE, null)
+                    settings.javaScriptEnabled = true
+                    settings.domStorageEnabled = true
+                    settings.cacheMode = WebSettings.LOAD_DEFAULT
+                    setBackgroundColor(AndroidColor.parseColor("#141416"))
+                    webViewClient = WebViewClient()
+                    loadDataWithBaseURL("https://tilecache.rainviewer.com", html, "text/html", "UTF-8", null)
                 }
             },
-            update = { map ->
-                map.controller.setCenter(GeoPoint(latitude, longitude))
+            update = { view ->
+                view.loadDataWithBaseURL("https://tilecache.rainviewer.com", html, "text/html", "UTF-8", null)
             },
             modifier = Modifier.fillMaxSize()
         )
-
-        DisposableEffect(Unit) {
-            onDispose {
-                mapViewInstance?.onDetach()
-            }
-        }
-
-        // Radar Player Controls Overlay
-        if (radarFrames.isNotEmpty()) {
-            val currentFrame = radarFrames.getOrNull(currentFrameIndex)
-            val timeLabel = currentFrame?.let {
-                val instant = Instant.ofEpochSecond(it.time)
-                DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneId.systemDefault()).format(instant)
-            } ?: "--:--"
-
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .background(Color(0xE6141416), RoundedCornerShape(20.dp))
-                    .padding(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(
-                            onClick = { isPlaying = !isPlaying },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(Color(0xFFD71920), CircleShape)
-                        ) {
-                            Icon(
-                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                contentDescription = if (isPlaying) "Pause" else "Play",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(10.dp))
-
-                        Column {
-                            Text(
-                                text = "LIVE PRECIPITATION RADAR",
-                                color = Color(0xFF8E8E93),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace
-                            )
-                            Text(
-                                text = timeLabel,
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    IconButton(
-                        onClick = {
-                            mapViewInstance?.controller?.animateTo(GeoPoint(latitude, longitude))
-                            mapViewInstance?.controller?.setZoom(8.5)
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MyLocation,
-                            contentDescription = "Recenter",
-                            tint = Color.White
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Slider(
-                    value = currentFrameIndex.toFloat(),
-                    onValueChange = {
-                        isPlaying = false
-                        currentFrameIndex = it.toInt().coerceIn(0, radarFrames.size - 1)
-                    },
-                    valueRange = 0f..(radarFrames.size - 1).toFloat(),
-                    colors = SliderDefaults.colors(
-                        thumbColor = Color(0xFFD71920),
-                        activeTrackColor = Color(0xFFD71920),
-                        inactiveTrackColor = Color(0xFF3A3A3C)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
     }
 }
