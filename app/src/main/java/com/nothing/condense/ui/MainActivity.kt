@@ -71,6 +71,7 @@ import com.nothing.condense.data.model.WeatherSummary
 import com.nothing.condense.ui.radar.RadarMapView
 import com.nothing.condense.ui.theme.NothingRainTheme
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
@@ -140,6 +141,25 @@ fun WeatherDashboardScreen(repository: WeatherRepository) {
     val prefs = remember { context.getSharedPreferences("condense_prefs", android.content.Context.MODE_PRIVATE) }
     var isMeteoMode by remember { mutableStateOf(prefs.getBoolean("is_meteo_mode", false)) }
 
+    // Module expansion states for CORE mode
+    var expandRain by remember { mutableStateOf(false) }
+    var expandUv by remember { mutableStateOf(false) }
+    var expandHourly by remember { mutableStateOf(false) }
+    var expandDaily by remember { mutableStateOf(false) }
+    var expandAqi by remember { mutableStateOf(false) }
+    var expandWind by remember { mutableStateOf(false) }
+    var expandSolar by remember { mutableStateOf(false) }
+    var expandRadar by remember { mutableStateOf(false) }
+
+    val showRainExpanded = isMeteoMode || expandRain
+    val showUvExpanded = isMeteoMode || expandUv
+    val showHourlyExpanded = isMeteoMode || expandHourly
+    val showDailyExpanded = isMeteoMode || expandDaily
+    val showAqiExpanded = isMeteoMode || expandAqi
+    val showWindExpanded = isMeteoMode || expandWind
+    val showSolarExpanded = isMeteoMode || expandSolar
+    val showRadarExpanded = isMeteoMode || expandRadar
+
     Scaffold(
         containerColor = Color(0xFF000000)
     ) { padding ->
@@ -148,7 +168,7 @@ fun WeatherDashboardScreen(repository: WeatherRepository) {
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .padding(horizontal = 18.dp, vertical = 14.dp)
         ) {
             // Top Bar
             Row(
@@ -248,7 +268,7 @@ fun WeatherDashboardScreen(repository: WeatherRepository) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             if (summary != null) {
                 val data = summary!!
@@ -263,14 +283,14 @@ fun WeatherDashboardScreen(repository: WeatherRepository) {
                         Text(
                             text = "${data.currentTemp}°",
                             color = Color.White,
-                            fontSize = 72.sp,
+                            fontSize = 68.sp,
                             fontWeight = FontWeight.Light,
                             letterSpacing = (-2).sp
                         )
                         Text(
                             text = "${data.conditionEmoji} ${data.conditionDescription}",
                             color = Color(0xFFE5E5EA),
-                            fontSize = 18.sp,
+                            fontSize = 17.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -290,99 +310,300 @@ fun WeatherDashboardScreen(repository: WeatherRepository) {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
-                // Primary Next Rain Card
-                RainCountdownCard(data)
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // UV Index Card
-                UvIndexCard(data)
-
-                // Detailed Meteorologist Telemetry Modules (When in METEO mode)
-                if (isMeteoMode && data.meteoTelemetry != null) {
-                    val meteo = data.meteoTelemetry
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    AirQualityMeteoCard(meteo)
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    WindBarometerMeteoCard(meteo)
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    SolarArcMeteoCard(meteo)
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Hourly Forecast Row
-                Text(
-                    text = "HOURLY FORECAST",
-                    color = Color(0xFF8E8E93),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    letterSpacing = 1.5.sp
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(data.hourlyForecast) { item ->
-                        HourlyForecastItemView(item)
+                // 1. Precipitation Module (2x1 Pill)
+                ExpandablePillCard(
+                    isExpanded = showRainExpanded,
+                    onToggle = { if (!isMeteoMode) expandRain = !expandRain },
+                    title = if (data.isRainingNow) "🌧️ PRECIPITATION" else "☔ NEXT PRECIPITATION",
+                    badgeText = if (data.isRainingNow) "ACTIVE" else "UPCOMING",
+                    badgeColor = if (data.isRainingNow) Color(0xFFFF453A) else Color(0xFF0A84FF),
+                    collapsedContent = {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = data.nextRainHeadline,
+                                color = Color.White,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            val total7d = String.format(Locale.US, "%.2f\"", data.dailyForecast.take(7).sumOf { it.precipSum })
+                            Text(
+                                text = "7d total: $total7d",
+                                color = Color(0xFF0A84FF),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    },
+                    expandedContent = {
+                        RainCountdownCardContent(data)
                     }
-                }
+                )
 
-                // 14-Day Daily Forecast Row
-                if (data.dailyForecast.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Text(
-                        text = "14-DAY DAILY FORECAST",
-                        color = Color(0xFF8E8E93),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        letterSpacing = 1.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(data.dailyForecast) { item ->
-                            DailyForecastItemView(item)
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // 2. UV Index & Sun Exposure Module (2x1 Pill)
+                ExpandablePillCard(
+                    isExpanded = showUvExpanded,
+                    onToggle = { if (!isMeteoMode) expandUv = !expandUv },
+                    title = "☀️ UV INDEX & SUN EXPOSURE",
+                    badgeText = "${data.currentUv.toInt()} (${data.uvCategory.uppercase()})",
+                    badgeColor = getUvColor(data.currentUv),
+                    collapsedContent = {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "UV ${data.currentUv.toInt()} · ${data.uvCategory}",
+                                color = Color.White,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Max today: ${data.maxUvToday.toInt()} · Peak: ${data.dailyForecast.take(7).maxOfOrNull { it.maxUv }?.toInt() ?: data.maxUvToday.toInt()}",
+                                color = Color(0xFFA1A1A6),
+                                fontSize = 13.sp
+                            )
+                        }
+                    },
+                    expandedContent = {
+                        UvIndexCardContent(data)
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // 3. Hourly Forecast Module (2x1 Pill)
+                ExpandablePillCard(
+                    isExpanded = showHourlyExpanded,
+                    onToggle = { if (!isMeteoMode) expandHourly = !expandHourly },
+                    title = "🕒 HOURLY FORECAST",
+                    badgeText = "NEXT 24H",
+                    collapsedContent = {
+                        val next5 = data.hourlyForecast.take(5)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            next5.forEach { item ->
+                                Text(
+                                    text = "${item.timeLabel}: ${item.temp}°",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    },
+                    expandedContent = {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                        ) {
+                            items(data.hourlyForecast) { item ->
+                                HourlyForecastItemView(item)
+                            }
                         }
                     }
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // 4. 14-Day Daily Forecast Module (2x1 Pill)
+                if (data.dailyForecast.isNotEmpty()) {
+                    ExpandablePillCard(
+                        isExpanded = showDailyExpanded,
+                        onToggle = { if (!isMeteoMode) expandDaily = !expandDaily },
+                        title = "📅 14-DAY DAILY FORECAST",
+                        badgeText = "14 DAYS",
+                        collapsedContent = {
+                            val next3 = data.dailyForecast.take(3)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                next3.forEach { item ->
+                                    Text(
+                                        text = "${item.dayLabel}: ${item.maxTemp}°/${item.minTemp}° ${item.emoji}",
+                                        color = Color.White,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        },
+                        expandedContent = {
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                            ) {
+                                items(data.dailyForecast) { item ->
+                                    DailyForecastItemView(item)
+                                }
+                            }
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
                 }
 
+                // 5. Air Quality & Particulates Module (2x1 Pill)
+                if (data.meteoTelemetry != null) {
+                    val meteo = data.meteoTelemetry
+                    ExpandablePillCard(
+                        isExpanded = showAqiExpanded,
+                        onToggle = { if (!isMeteoMode) expandAqi = !expandAqi },
+                        title = "🍃 AIR QUALITY & PARTICULATES",
+                        badgeText = meteo.aqiCategory.uppercase(),
+                        badgeColor = when {
+                            meteo.aqi <= 50 -> Color(0xFF34C759)
+                            meteo.aqi <= 100 -> Color(0xFFFFCC00)
+                            meteo.aqi <= 150 -> Color(0xFFFF9500)
+                            else -> Color(0xFFFF3B30)
+                        },
+                        collapsedContent = {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "US AQI ${meteo.aqi} (${meteo.aqiCategory})",
+                                    color = Color.White,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "PM2.5: ${meteo.pm25} · PM10: ${meteo.pm10}",
+                                    color = Color(0xFFA1A1A6),
+                                    fontSize = 13.sp
+                                )
+                            }
+                        },
+                        expandedContent = {
+                            AirQualityCardContent(meteo)
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 6. Wind Vectors & Barometer Tendency Module (2x1 Pill)
+                    ExpandablePillCard(
+                        isExpanded = showWindExpanded,
+                        onToggle = { if (!isMeteoMode) expandWind = !expandWind },
+                        title = "💨 WIND & BAROMETER TENDENCY",
+                        badgeText = "${meteo.windDirectionCardinal} ${meteo.windSpeedMph} MPH",
+                        collapsedContent = {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "${meteo.windSpeedMph} mph (Gust ${meteo.windGustsMph})",
+                                    color = Color.White,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "${meteo.pressureHpa} hPa · ${meteo.humidity}% Hum",
+                                    color = Color(0xFFA1A1A6),
+                                    fontSize = 13.sp
+                                )
+                            }
+                        },
+                        expandedContent = {
+                            WindBarometerCardContent(meteo)
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 7. Solar Arc & Daylight Module (2x1 Pill)
+                    ExpandablePillCard(
+                        isExpanded = showSolarExpanded,
+                        onToggle = { if (!isMeteoMode) expandSolar = !expandSolar },
+                        title = "🌅 SOLAR ARC & DAYLIGHT",
+                        badgeText = meteo.daylightLeftStr.uppercase(),
+                        badgeColor = Color(0xFFFF9F0A),
+                        collapsedContent = {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "🌅 ${meteo.sunriseStr} · 🌇 ${meteo.sunsetStr}",
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Golden hr: ${meteo.goldenHourStr}",
+                                    color = Color(0xFFFF9F0A),
+                                    fontSize = 12.sp
+                                )
+                            }
+                        },
+                        expandedContent = {
+                            SolarArcCardContent(meteo)
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+
+                // 8. Live Doppler Radar Map Module (2x1 Pill)
+                ExpandablePillCard(
+                    isExpanded = showRadarExpanded,
+                    onToggle = { if (!isMeteoMode) expandRadar = !expandRadar },
+                    title = "📡 LIVE DOPPLER RADAR MAP",
+                    badgeText = if (showRadarExpanded) "COLLAPSE" else "TAP TO VIEW",
+                    collapsedContent = {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "RainViewer Doppler Radar",
+                                color = Color.White,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Tap to open interactive map",
+                                color = Color(0xFF0A84FF),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    },
+                    expandedContent = {
+                        RadarMapView(
+                            latitude = location.first,
+                            longitude = location.second,
+                            radarFrames = radarFrames,
+                            radarHost = radarHost,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(340.dp)
+                                .clip(RoundedCornerShape(18.dp))
+                                .border(1.dp, Color(0xFF2C2C2E), RoundedCornerShape(18.dp))
+                        )
+                    }
+                )
+
                 Spacer(modifier = Modifier.height(28.dp))
-
-                // Live Interactive Radar Map Section
-                Text(
-                    text = "LIVE DOPPLER RADAR MAP",
-                    color = Color(0xFF8E8E93),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    letterSpacing = 1.5.sp
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                RadarMapView(
-                    latitude = location.first,
-                    longitude = location.second,
-                    radarFrames = radarFrames,
-                    radarHost = radarHost,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(340.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .border(1.dp, Color(0xFF2C2C2E), RoundedCornerShape(24.dp))
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
             } else {
                 Box(
                     modifier = Modifier
@@ -398,13 +619,22 @@ fun WeatherDashboardScreen(repository: WeatherRepository) {
 }
 
 @Composable
-fun RainCountdownCard(data: WeatherSummary) {
+fun ExpandablePillCard(
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    title: String,
+    badgeText: String,
+    badgeColor: Color = Color(0xFF0A84FF),
+    collapsedContent: @Composable () -> Unit,
+    expandedContent: @Composable () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFF141416), RoundedCornerShape(24.dp))
-            .border(1.dp, Color(0xFF2C2C2E), RoundedCornerShape(24.dp))
-            .padding(18.dp)
+            .background(Color(0xFF141416), RoundedCornerShape(20.dp))
+            .border(1.dp, Color(0xFF2C2C2E), RoundedCornerShape(20.dp))
+            .clickable { onToggle() }
+            .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
         Column {
             Row(
@@ -412,47 +642,64 @@ fun RainCountdownCard(data: WeatherSummary) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = if (data.isRainingNow) "🌧️ PRECIPITATION" else "☔ NEXT PRECIPITATION",
-                        color = Color(0xFF8E8E93),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        letterSpacing = 1.5.sp
-                    )
-                }
-
                 Text(
-                    text = if (data.isRainingNow) "ACTIVE" else "UPCOMING",
-                    color = if (data.isRainingNow) Color(0xFFFF453A) else Color(0xFF0A84FF),
+                    text = title,
+                    color = Color(0xFF8E8E93),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = FontFamily.Monospace,
+                    letterSpacing = 1.2.sp
                 )
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = badgeText,
+                        color = badgeColor,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (isExpanded) "▲" else "▼",
+                        color = Color(0xFF636366),
+                        fontSize = 9.sp
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = data.nextRainHeadline,
-                color = Color.White,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = data.nextRainSubtext,
-                color = Color(0xFFA1A1A6),
-                fontSize = 14.sp
-            )
-
-            // 7-Day Rainfall Trend Line Chart
-            if (data.dailyForecast.isNotEmpty()) {
-                SevenDayRainTrendChart(data.dailyForecast)
+            if (isExpanded) {
+                expandedContent()
+            } else {
+                collapsedContent()
             }
+        }
+    }
+}
+
+@Composable
+fun RainCountdownCardContent(data: WeatherSummary) {
+    Column {
+        Text(
+            text = data.nextRainHeadline,
+            color = Color.White,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = data.nextRainSubtext,
+            color = Color(0xFFA1A1A6),
+            fontSize = 14.sp
+        )
+
+        // 7-Day Rainfall Trend Line Chart
+        if (data.dailyForecast.isNotEmpty()) {
+            SevenDayRainTrendChart(data.dailyForecast)
         }
     }
 }
@@ -467,7 +714,7 @@ fun SevenDayRainTrendChart(dailyList: List<DailyItem>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp)
+            .padding(top = 14.dp)
             .background(Color(0xFF1C1C1E), RoundedCornerShape(16.dp))
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
@@ -523,32 +770,36 @@ fun SevenDayRainTrendChart(dailyList: List<DailyItem>) {
         ) {
             val width = size.width
             val height = size.height
-            val stepX = width / (days.size - 1).coerceAtLeast(1)
+            val step = width / (days.size - 1).coerceAtLeast(1)
 
             val points = days.mapIndexed { index, item ->
-                val x = index * stepX
-                val normalizedY = (item.precipSum / maxRain).coerceIn(0.0, 1.0)
-                val y = height - (normalizedY * (height - 12f) + 6f).toFloat()
+                val x = index * step
+                val fraction = (item.precipSum / maxRain).toFloat().coerceIn(0f, 1f)
+                val y = height - (fraction * (height - 12.dp.toPx())) - 6.dp.toPx()
                 Offset(x, y)
             }
 
-            // Fill gradient area
+            // Fill area gradient
             val fillPath = Path().apply {
                 moveTo(points.first().x, height)
                 points.forEach { lineTo(it.x, it.y) }
                 lineTo(points.last().x, height)
                 close()
             }
+
             drawPath(
                 path = fillPath,
                 brush = Brush.verticalGradient(
-                    colors = listOf(Color(0x400A84FF), Color.Transparent),
+                    colors = listOf(
+                        Color(0xFF0A84FF).copy(alpha = 0.35f),
+                        Color(0xFF0A84FF).copy(alpha = 0.02f)
+                    ),
                     startY = 0f,
                     endY = height
                 )
             )
 
-            // Draw line
+            // Draw smooth bezier curve line
             val strokePath = Path().apply {
                 moveTo(points.first().x, points.first().y)
                 for (i in 1 until points.size) {
@@ -566,19 +817,17 @@ fun SevenDayRainTrendChart(dailyList: List<DailyItem>) {
 
             // Draw data dots
             points.forEachIndexed { i, pt ->
-                val isRain = days[i].precipSum > 0.0
+                val hasRain = days[i].precipSum > 0.0
                 drawCircle(
-                    color = if (isRain) Color(0xFF0A84FF) else Color(0xFF3A3A3C),
-                    radius = if (isRain) 4.dp.toPx() else 2.5.dp.toPx(),
+                    color = if (hasRain) Color(0xFF0A84FF) else Color(0xFF636366),
+                    radius = 4.dp.toPx(),
                     center = pt
                 )
-                if (isRain) {
-                    drawCircle(
-                        color = Color.White,
-                        radius = 2.dp.toPx(),
-                        center = pt
-                    )
-                }
+                drawCircle(
+                    color = if (hasRain) Color.White else Color(0xFF2C2C2E),
+                    radius = 2.dp.toPx(),
+                    center = pt
+                )
             }
         }
 
@@ -605,74 +854,41 @@ fun SevenDayRainTrendChart(dailyList: List<DailyItem>) {
 }
 
 @Composable
-fun UvIndexCard(data: WeatherSummary) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFF141416), RoundedCornerShape(24.dp))
-            .border(1.dp, Color(0xFF2C2C2E), RoundedCornerShape(24.dp))
-            .padding(18.dp)
-    ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "UV INDEX & SUN EXPOSURE",
-                    color = Color(0xFF8E8E93),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    letterSpacing = 1.5.sp
-                )
-
-                Text(
-                    text = data.uvCategory.uppercase(),
-                    color = getUvColor(data.currentUv),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "${data.currentUv.toInt()}",
-                    color = Color.White,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Text(
-                    text = "Max today: ${data.maxUvToday.toInt()} (${RainEngine.getUvCategory(data.maxUvToday)})",
-                    color = Color(0xFFA1A1A6),
-                    fontSize = 14.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            LinearProgressIndicator(
-                progress = { (data.currentUv / 12.0).toFloat().coerceIn(0f, 1f) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp),
-                color = getUvColor(data.currentUv),
-                trackColor = Color(0xFF2C2C2E),
+fun UvIndexCardContent(data: WeatherSummary) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "${data.currentUv.toInt()}",
+                color = Color.White,
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold
             )
 
-            // 7-Day UV Trend Line Chart
-            if (data.dailyForecast.isNotEmpty()) {
-                SevenDayUvTrendChart(data.dailyForecast)
-            }
+            Text(
+                text = "Max today: ${data.maxUvToday.toInt()} (${RainEngine.getUvCategory(data.maxUvToday)})",
+                color = Color(0xFFA1A1A6),
+                fontSize = 14.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        LinearProgressIndicator(
+            progress = { (data.currentUv / 12.0).toFloat().coerceIn(0f, 1f) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp),
+            color = getUvColor(data.currentUv),
+            trackColor = Color(0xFF2C2C2E),
+        )
+
+        // 7-Day UV Trend Line Chart
+        if (data.dailyForecast.isNotEmpty()) {
+            SevenDayUvTrendChart(data.dailyForecast)
         }
     }
 }
@@ -687,7 +903,7 @@ fun SevenDayUvTrendChart(dailyList: List<DailyItem>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp)
+            .padding(top = 14.dp)
             .background(Color(0xFF1C1C1E), RoundedCornerShape(16.dp))
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
@@ -704,9 +920,9 @@ fun SevenDayUvTrendChart(dailyList: List<DailyItem>) {
                 fontFamily = FontFamily.Monospace,
                 letterSpacing = 1.sp
             )
-            val peakUv = remember(days) { days.maxOfOrNull { it.maxUv }?.toInt() ?: 0 }
+            val peakUv = remember(days) { days.maxOfOrNull { it.maxUv } ?: 0.0 }
             Text(
-                text = "Peak: $peakUv (${RainEngine.getUvCategory(peakUv.toDouble())})",
+                text = "Peak: ${peakUv.toInt()} (${RainEngine.getUvCategory(peakUv)})",
                 color = Color(0xFFFF9F0A),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
@@ -724,7 +940,7 @@ fun SevenDayUvTrendChart(dailyList: List<DailyItem>) {
                 Text(
                     text = "${item.maxUv.toInt()}",
                     color = getUvColor(item.maxUv),
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace,
                     modifier = Modifier.width(36.dp),
@@ -743,32 +959,36 @@ fun SevenDayUvTrendChart(dailyList: List<DailyItem>) {
         ) {
             val width = size.width
             val height = size.height
-            val stepX = width / (days.size - 1).coerceAtLeast(1)
+            val step = width / (days.size - 1).coerceAtLeast(1)
 
             val points = days.mapIndexed { index, item ->
-                val x = index * stepX
-                val normalizedY = (item.maxUv / maxUv).coerceIn(0.0, 1.0)
-                val y = height - (normalizedY * (height - 12f) + 6f).toFloat()
+                val x = index * step
+                val fraction = (item.maxUv / maxUv).toFloat().coerceIn(0f, 1f)
+                val y = height - (fraction * (height - 12.dp.toPx())) - 6.dp.toPx()
                 Offset(x, y)
             }
 
-            // Fill gradient area
+            // Fill area gradient
             val fillPath = Path().apply {
                 moveTo(points.first().x, height)
                 points.forEach { lineTo(it.x, it.y) }
                 lineTo(points.last().x, height)
                 close()
             }
+
             drawPath(
                 path = fillPath,
                 brush = Brush.verticalGradient(
-                    colors = listOf(Color(0x40FF9F0A), Color.Transparent),
+                    colors = listOf(
+                        Color(0xFFFF9F0A).copy(alpha = 0.35f),
+                        Color(0xFFFF9F0A).copy(alpha = 0.02f)
+                    ),
                     startY = 0f,
                     endY = height
                 )
             )
 
-            // Draw line
+            // Draw smooth bezier curve line
             val strokePath = Path().apply {
                 moveTo(points.first().x, points.first().y)
                 for (i in 1 until points.size) {
@@ -819,6 +1039,118 @@ fun SevenDayUvTrendChart(dailyList: List<DailyItem>) {
                 )
             }
         }
+    }
+}
+
+@Composable
+fun AirQualityCardContent(telemetry: MeteoTelemetry) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "${telemetry.aqi}",
+                color = Color.White,
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = "US AQI · PM2.5: ${telemetry.pm25} µg/m³ · PM10: ${telemetry.pm10}",
+                color = Color(0xFFA1A1A6),
+                fontSize = 13.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        LinearProgressIndicator(
+            progress = { (telemetry.aqi / 200.0).toFloat().coerceIn(0f, 1f) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp),
+            color = when {
+                telemetry.aqi <= 50 -> Color(0xFF34C759)
+                telemetry.aqi <= 100 -> Color(0xFFFFCC00)
+                telemetry.aqi <= 150 -> Color(0xFFFF9500)
+                else -> Color(0xFFFF3B30)
+            },
+            trackColor = Color(0xFF2C2C2E)
+        )
+    }
+}
+
+@Composable
+fun WindBarometerCardContent(telemetry: MeteoTelemetry) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = "SUSTAINED / GUSTS", color = Color(0xFF636366), fontSize = 10.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(text = "${telemetry.windSpeedMph} mph (Gust ${telemetry.windGustsMph})", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = "BAROMETER", color = Color(0xFF636366), fontSize = 10.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(text = "${telemetry.pressureHpa} hPa", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = "DEW POINT", color = Color(0xFF636366), fontSize = 10.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(text = "${telemetry.dewPoint}°", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = "HUMIDITY / CLOUDS", color = Color(0xFF636366), fontSize = 10.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(text = "${telemetry.humidity}% · ${telemetry.cloudCoverPercent}% Cloud", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+fun SolarArcCardContent(telemetry: MeteoTelemetry) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "🌅", fontSize = 16.sp)
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(text = telemetry.sunriseStr, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            }
+
+            Text(text = "───────●───────", color = Color(0xFFFF9F0A), fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "🌇", fontSize = 16.sp)
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(text = telemetry.sunsetStr, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "✨ Golden hour begins at ${telemetry.goldenHourStr}",
+            color = Color(0xFFA1A1A6),
+            fontSize = 13.sp
+        )
     }
 }
 
@@ -919,218 +1251,5 @@ fun getUvColor(uv: Double): Color {
         uv < 8.0 -> Color(0xFFFF9F0A) // Orange
         uv < 11.0 -> Color(0xFFFF453A) // Red
         else -> Color(0xFFBF5AF2) // Purple
-    }
-}
-
-@Composable
-fun AirQualityMeteoCard(telemetry: MeteoTelemetry) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFF141416), RoundedCornerShape(24.dp))
-            .border(1.dp, Color(0xFF2C2C2E), RoundedCornerShape(24.dp))
-            .padding(18.dp)
-    ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "🍃 AIR QUALITY & PARTICULATES",
-                    color = Color(0xFF8E8E93),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    letterSpacing = 1.5.sp
-                )
-                Text(
-                    text = telemetry.aqiCategory.uppercase(),
-                    color = when {
-                        telemetry.aqi <= 50 -> Color(0xFF34C759)
-                        telemetry.aqi <= 100 -> Color(0xFFFFCC00)
-                        telemetry.aqi <= 150 -> Color(0xFFFF9500)
-                        else -> Color(0xFFFF3B30)
-                    },
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "${telemetry.aqi}",
-                    color = Color.White,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Text(
-                    text = "US AQI · PM2.5: ${telemetry.pm25} µg/m³ · PM10: ${telemetry.pm10}",
-                    color = Color(0xFFA1A1A6),
-                    fontSize = 13.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            LinearProgressIndicator(
-                progress = { (telemetry.aqi / 200.0).toFloat().coerceIn(0f, 1f) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp),
-                color = when {
-                    telemetry.aqi <= 50 -> Color(0xFF34C759)
-                    telemetry.aqi <= 100 -> Color(0xFFFFCC00)
-                    telemetry.aqi <= 150 -> Color(0xFFFF9500)
-                    else -> Color(0xFFFF3B30)
-                },
-                trackColor = Color(0xFF2C2C2E)
-            )
-        }
-    }
-}
-
-@Composable
-fun WindBarometerMeteoCard(telemetry: MeteoTelemetry) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFF141416), RoundedCornerShape(24.dp))
-            .border(1.dp, Color(0xFF2C2C2E), RoundedCornerShape(24.dp))
-            .padding(18.dp)
-    ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "💨 WIND & BAROMETER TENDENCY",
-                    color = Color(0xFF8E8E93),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    letterSpacing = 1.5.sp
-                )
-                Text(
-                    text = "${telemetry.windDirectionCardinal} ${telemetry.windSpeedMph} MPH",
-                    color = Color(0xFF0A84FF),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "SUSTAINED / GUSTS", color = Color(0xFF636366), fontSize = 10.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(text = "${telemetry.windSpeedMph} mph (Gust ${telemetry.windGustsMph})", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "BAROMETER", color = Color(0xFF636366), fontSize = 10.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(text = "${telemetry.pressureHpa} hPa", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "DEW POINT", color = Color(0xFF636366), fontSize = 10.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(text = "${telemetry.dewPoint}°", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "HUMIDITY / CLOUDS", color = Color(0xFF636366), fontSize = 10.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(text = "${telemetry.humidity}% · ${telemetry.cloudCoverPercent}% Cloud", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun SolarArcMeteoCard(telemetry: MeteoTelemetry) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFF141416), RoundedCornerShape(24.dp))
-            .border(1.dp, Color(0xFF2C2C2E), RoundedCornerShape(24.dp))
-            .padding(18.dp)
-    ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "🌅 SOLAR ARC & DAYLIGHT",
-                    color = Color(0xFF8E8E93),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    letterSpacing = 1.5.sp
-                )
-                Text(
-                    text = telemetry.daylightLeftStr.uppercase(),
-                    color = Color(0xFFFF9F0A),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "🌅", fontSize = 16.sp)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = telemetry.sunriseStr, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                }
-
-                Text(text = "───────●───────", color = Color(0xFFFF9F0A), fontSize = 12.sp, fontFamily = FontFamily.Monospace)
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "🌇", fontSize = 16.sp)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = telemetry.sunsetStr, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "✨ Golden hour begins at ${telemetry.goldenHourStr}",
-                color = Color(0xFFA1A1A6),
-                fontSize = 13.sp
-            )
-        }
     }
 }
